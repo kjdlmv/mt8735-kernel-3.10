@@ -1,0 +1,19 @@
+1、添加sysfs 测试命令，修改升级命令格式：
+/* 
+example 1: update firmware
+echo u:/mnt/sdcard/download/icn86xx.bin > icn_update
+cat icn_update
+
+example 2: Uniformity test
+echo c:100 > icn_update
+cat icn_update
+
+example 3: open short (dif) test
+echo e:3:500:200 > icn_update
+cat icn_update
+
+*/ 
+
+2、修正MTK平台下APK不能升级固件问题。
+3、修正MTK平台下APK无法正确读取参数，查看噪声等问题。
+4、修正icn85xx_log函数在86，88 IC是工作异常问题。
