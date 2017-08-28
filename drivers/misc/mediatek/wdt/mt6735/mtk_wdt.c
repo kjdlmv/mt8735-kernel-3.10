@@ -313,10 +313,18 @@ void aee_wdt_dump_reg(void)
 	aee_wdt_printf("***dump wdt reg end***\n");
 	
 }
+#ifdef CONFIG_MTK_MULTIBRIDGE_SUPPORT 
+extern void mt8193_bus_clk_switch_to_26m(void);
+#endif
 
 void wdt_arch_reset(char mode)
 {
     unsigned int wdt_mode_val;
+#ifdef CONFIG_MTK_MULTIBRIDGE_SUPPORT
+ printk(KERN_ERR "before mt8193_bus_clk_switch_to_26m\n");
+    mt8193_bus_clk_switch_to_26m();
+printk(KERN_ERR "after mt8193_bus_clk_switch_to_26m\n");
+#endif
 #ifdef CONFIG_OF
 	struct device_node *np_rgu;
 #endif

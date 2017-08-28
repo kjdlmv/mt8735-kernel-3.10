@@ -516,6 +516,10 @@ config MTK_FT5406_82
 config MTK_FT5206
         bool "FT5206 for Mediatek package"
         default n
+        
+config MTK_ICN85XX
+bool "ICN85XX for Mediatek package"
+default n
 
 config MTK_FT5X0X
         bool "FT5X0X for Mediatek package"

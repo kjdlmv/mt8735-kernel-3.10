@@ -20,6 +20,7 @@ obj-y	+= kernel/
 obj-y	+= aee/
 #obj-y	+= ir_etk/
 obj-y	+= mic5/
+obj-y	+= y20motor/
 
 obj-$(CONFIG_MTK_FMRADIO)	+= fmradio/
 obj-$(CONFIG_MTK_GPS)	    += gps/

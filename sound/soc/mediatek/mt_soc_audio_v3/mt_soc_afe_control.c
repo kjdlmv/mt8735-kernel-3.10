@@ -677,6 +677,7 @@ void EnableALLbySampleRate(uint32 SampleRate)
         {
             AudDrv_Clk_On();
             EnableApll1(true);
+            EnableApll2(true);
             EnableI2SDivPower(AUDIO_APLL1_DIV0, true);
             EnableI2SDivPower(AUDIO_APLL2_DIV0, true);
             AudDrv_APLL1Tuner_Clk_On();
@@ -691,6 +692,7 @@ void EnableALLbySampleRate(uint32 SampleRate)
         if(APLLCounter == true)
         {
             AudDrv_Clk_On();
+            EnableApll1(true);
             EnableApll2(true);
             EnableI2SDivPower(AUDIO_APLL1_DIV0, true);
             EnableI2SDivPower(AUDIO_APLL2_DIV0, true);
@@ -717,6 +719,7 @@ void DisableALLbySampleRate(uint32 SampleRate)
             AudDrv_APLL1Tuner_Clk_Off();
             AudDrv_APLL2Tuner_Clk_Off();
             EnableApll1(false);
+            EnableApll2(false);
             AudDrv_Clk_Off();
         }
     }
@@ -731,6 +734,7 @@ void DisableALLbySampleRate(uint32 SampleRate)
             EnableI2SDivPower(AUDIO_APLL2_DIV0, false);
             AudDrv_APLL1Tuner_Clk_Off();
             AudDrv_APLL2Tuner_Clk_Off();
+            EnableApll1(false);
             EnableApll2(false);
             AudDrv_Clk_Off();
         }

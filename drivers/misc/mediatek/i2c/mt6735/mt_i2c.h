@@ -3,7 +3,7 @@
 #include <mach/mt_typedefs.h>
 
 #define I2CTAG			"[mt-i2c]"
-#define I2CLOG(fmt, arg...)	printk(KERN_ERR I2CTAG fmt, ##arg)
+#define I2CLOG(fmt, arg...)	printk(KERN_DEBUG I2CTAG fmt, ##arg)
 #define I2CMSG(fmt, arg...)	printk(fmt, ##arg)
 #define I2CERR(fmt, arg...)	printk(KERN_ERR I2CTAG "ERROR,%d: "fmt, __LINE__, ##arg)
 #define I2CFUC(fmt, arg...)	printk(I2CTAG "%s\n", __FUNCTION__)

@@ -6,8 +6,14 @@
 #define STM_POWER_CTL   _IOW(MOTOR_MAGIC,  5,int)
 #define DPP3438_STATUS   _IOR(MOTOR_MAGIC,  6,int)
 #define CHECK_CHARGER_TYPE   _IOR(MOTOR_MAGIC,  7,int)
+#define READ_GSENSOR_DATA   _IOR(MOTOR_MAGIC,  8,int)
+#define DPP3438_PICTRUE_ROTATION   _IOW(MOTOR_MAGIC,  9,int)
 
 //#define DPP3438_POWER   _IOW(MOTOR_MAGIC,  10,int)
+
+
+#define COROTATION 0x06
+#define  INVERSION 0x07
 
 struct ddp_config
 {

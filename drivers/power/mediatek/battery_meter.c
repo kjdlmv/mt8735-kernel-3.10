@@ -38,6 +38,8 @@
 #include "mach/mtk_rtc.h"
 
 #include <mach/upmu_common.h>
+#include <misc.h>	
+
 
 
 /* ============================================================ // */
@@ -2658,12 +2660,13 @@ static kal_uint32 get_curent_battery_vol(int Channel)		//added by daviekuo for y
 }
 int avg_vol_test=0;
 int rtc_capatiy_test=0;
-
 kal_int32 battery_meter_to_ui_persent(int Channel,bool first_boot_flag)	
 {
 	int ret = 0, data[4], i, ret_value = 0, ret_temp = 0, times = 12,pbuf[12];
-	unsigned int avg_vol,ret_ui,max,min,sum=0;
-	static unsigned int pre_ui,next_ui,timer_counter,chargerval;
+	unsigned int avg_vol,ret_ui,max,min,sum=0,inc=0,pin_val,flush_time=3;
+	static unsigned int timer_counter;
+	static bool ui_temp;	
+	
 	   if( IMM_IsAdcInitReady() == 0 )
 	   {
 		   pr_notice("[DISO] AUXADC is not ready");
@@ -2694,65 +2697,154 @@ kal_int32 battery_meter_to_ui_persent(int Channel,bool first_boot_flag)
 	   sum=sum-min-max;
 	   avg_vol=sum/10;
 	 avg_vol_test=avg_vol;
+	 pin_val=mt_get_gpio_in(CHG_DET_PIN);
 
-	 if(avg_vol >=3630)//12.4v  //
+#ifndef CONFIG_MISC_Y20A  //Y20B battery
+	if( 1 == pin_val)
+	 {
+	 	if(avg_vol>3620)inc=20;
+		else if(avg_vol>3592)inc=75;////12v		
+		else inc=145;//240;//
+
+		 flush_time=10;////2min		
+		avg_vol -=inc;
+	  }
+	 if(avg_vol >=3620 )//12.1v 
 	 {
 		ret_ui=100;
+		ui_temp=true;
 		BMT_status.bat_full = KAL_TRUE;
 	 }
-	 else if(avg_vol< 3630 && avg_vol >=3600)//12.0v--12.4v  //85%---100%
+	  else if(avg_vol< 3620 && avg_vol >=3604)////85%---100%
 	 {
-		ret_ui=85+(avg_vol-3600)/((3630-3600)/15);//2
+		ret_ui=85+(avg_vol-3604);
 	 }
+#else  // Y20A battery
+
+	 if(1 == pin_val ) 
+	  {		
+		   if(first_boot_flag == true)
+		  {
+			  if(avg_vol >3555) inc=175;
+			  else inc=135;
+		   }
+		  else{ 
+		  	
+                 		 if(avg_vol <3610)inc=135;
+		  }
+		  avg_vol -=inc;
+		  flush_time=12;////2min
+	   }
+
+	 if(avg_vol >=3620)//12.13v  //
+	 {
+		ret_ui=100;
+		ui_temp=true;
+		BMT_status.bat_full = KAL_TRUE;
+	 }
+	  else if(avg_vol< 3620 && avg_vol >=3604)//12.0v--12.4v  //85%---100%
+	 {
+		ret_ui=85+(avg_vol-3604);/*/((3649-3604)/15);//8*/
+	 }
+#endif	
 	 else if(avg_vol< 3604 && avg_vol >=3454)//11.5V--12.0v  //60%---85%
 	 {
 		 ret_ui=60+(avg_vol-3454)/((3604-3454)/25);//6.0
 
 	 }
-	  else if(avg_vol< 3454 && avg_vol >=3364)//11.0V--11.5v  //30%---60%
+	  else if(avg_vol< 3454 && avg_vol >=3304)//11.0V--11.5v  //30%---60%//
 	 {
-		  ret_ui=30+(avg_vol-3364)/((3454-3364)/30);//3.0
+		  ret_ui=30+(avg_vol-3304)/((3454-3304)/30);//5.0
 
 	 }
-	    else if(avg_vol< 3364 && avg_vol >=3244)//10.5V--11v  //0%---30%
+	    else if(avg_vol< 3304 && avg_vol >=3154)//10.5V--11.0v  //0%---30%
 	 {
-		  ret_ui=1+(avg_vol-3244)/((3364-3244)/30);//4.0
+		  ret_ui=1+(avg_vol-3154)/((3304-3154)/30);//5.0
 
 	 }
 	else 	
 	{
 	
-		if(BMT_status.SOC >1)return BMT_status.SOC--;
+		if(BMT_status.SOC >1 && pin_val==0)return  --BMT_status.SOC;
 
-		ret_ui=1;
+		if(BMT_status.charger_exist == KAL_TRUE)
+		 ret_ui=1;
+		else  ret_ui=0;
 		 	
 	}
 	
-	  printk("daviekuo avg_vol=%d,ret_ui=%d,,pre_ui=%d,BMT_status.=%d,first_boot_flag=%d\n",avg_vol,ret_ui,pre_ui,BMT_status.UI_SOC,first_boot_flag);
+	  printk("daviekuo avg_vol=%d,ret_ui=%d,BMT_status.=%d,first_boot_flag=%d,,inc==%d\n",avg_vol,ret_ui,BMT_status.UI_SOC,first_boot_flag,inc);
 
 	 if(first_boot_flag == true)
 	  {
-		   unsigned int rtc_val;
+		   unsigned int rtc_val;		   
 		     rtc_val=get_rtc_spare_fg_value();
 		     rtc_capatiy_test=rtc_val;
-		     printk("daviekuo avg_vol=%d,ret_ui=%d,,pre_ui=%d,BMT_status.=%d,first_boot_flag=%d, rtc_val=%d\n",avg_vol,ret_ui,pre_ui,BMT_status.UI_SOC,first_boot_flag, rtc_val);
-		    if( rtc_val>0 && ((ret_ui >(rtc_val+6)) ||(ret_ui <abs(rtc_val-6))))return rtc_val;	 
+		     printk("daviekuo avg_vol=%d,ret_ui=%d,,BMT_status.=%d,first_boot_flag=%d, rtc_val=%d\n",avg_vol,ret_ui,BMT_status.UI_SOC,first_boot_flag, rtc_val);	
+		   if( 1 == pin_val)
+		  {
+			   if( rtc_val>1)  return rtc_val;
+			   else 	         return ret_ui;
+		  }
+		   else
+		   {
+			   if( rtc_val>11 && ret_ui <(rtc_val+11) &&ret_ui >(rtc_val-11))
+			     return rtc_val;	 
 
-		    return ret_ui;
+			    return ret_ui;
+		   }
 	  }
-	
-	 if (timer_counter == 5) 
-	 {
-		  timer_counter = 0;
-	      if( ret_ui>(BMT_status.SOC+3))        return BMT_status.SOC +=1;
-	      else if(ret_ui <(BMT_status.SOC-3))return BMT_status.SOC -=1;	  
-	      else 					 	   return ret_ui;
-			
-	 } 			
-	 else 
-	 {
-	 timer_counter++;
-                 }
+	   
+	if(ui_temp == true && BMT_status.charger_exist == KAL_FALSE)
+	{
+#ifndef CONFIG_MISC_Y20A
+		if(avg_vol >3545)//11.8v
+		   return 100;
+		else
+		ui_temp=false;	
+
+#else
+		if(avg_vol >3600)//
+		   return 100;
+		else
+		ui_temp=false;	
+
+#endif
+		
+	}
+	else
+	{
+#ifndef CONFIG_MISC_Y20A	
+		 if (timer_counter >= flush_time) 
+#else
+		if (timer_counter >= flush_time) 
+#endif
+		 {
+			  timer_counter = 0;
+		      if( ret_ui>(BMT_status.SOC+3)      &&  pin_val==1)        return BMT_status.SOC +=1;
+		      else if(ret_ui <(BMT_status.SOC-3) && BMT_status.charger_exist == KAL_FALSE )return BMT_status.SOC -=1;	  
+		      else 					 	
+			  {
+				  if(BMT_status.charger_exist == KAL_TRUE)
+				 {
+					 if(ret_ui <BMT_status.SOC)return BMT_status.SOC;
+					 else					 return ret_ui;
+				  }
+				  else
+				  {
+				           if(ret_ui >BMT_status.SOC)return BMT_status.SOC;
+					 else				  	 return ret_ui;
+				 
+				  }
+
+		      	}
+				
+		 } 			
+		 else 
+		 {
+		 timer_counter++;
+	           }
+	}
 	 return BMT_status.SOC;		
 	
 }

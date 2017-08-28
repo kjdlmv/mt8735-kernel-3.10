@@ -116,6 +116,16 @@ static void StopAudioCaptureHardware(struct snd_pcm_substream *substream)
 		    if (GetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_IN_2) == false)
 		    {
 				DisableALLbySampleRate(Samp_96);
+				
+				printk("5mic--->StopAudioCaptureHardware APLL disable\n");
+
+		//EnableI2SDivPower(AUDIO_APLL1_DIV0, false); 
+		//EnableI2SDivPower(AUDIO_APLL2_DIV0, false);
+		EnableI2SDivPower(AUDIO_APLL12_DIV1, false); 
+		//EnableI2SDivPower(AUDIO_APLL12_DIV2 , false); 
+		//EnableI2SDivPower(AUDIO_APLL12_DIV3 , false);
+		//EnableI2SDivPower(AUDIO_APLL12_DIV4 , false);
+
 				Set2ndI2SInEnable(false);	
 		    }
 
@@ -168,7 +178,7 @@ static void StartAudioCaptureHardware(struct snd_pcm_substream *substream)
 	uint32 reg_pcm_intf_con1 = 0,div;
 	uint32 InterfaceType, eFetchFormat;
 	uint32 ConnectionFormat,  Output;
-	uint32 Aud_block;
+	uint32 Aud_block,MclkDiv0;
 
       if(substream->runtime->rate == Samp_96)
       	{
@@ -210,7 +220,18 @@ static void StartAudioCaptureHardware(struct snd_pcm_substream *substream)
 	   m2ndI2SInAttribute.mI2S_HDEN =Soc_Aud_LOW_JITTER_CLOCK;
 
 	   EnableALLbySampleRate(substream->runtime->rate);//enable clk;
-	
+
+	//   EnableI2SDivPower(AUDIO_APLL1_DIV0, true); 
+	 //  EnableI2SDivPower(AUDIO_APLL2_DIV0, true);	   
+	   EnableI2SDivPower(AUDIO_APLL12_DIV1, true); 
+	  // EnableI2SDivPower(AUDIO_APLL12_DIV2 , true); 
+	  // EnableI2SDivPower(AUDIO_APLL12_DIV3 , true);
+	 //  EnableI2SDivPower(AUDIO_APLL12_DIV4 , true);
+	   MclkDiv0 = SetCLkMclk(Soc_Aud_I2S0, m2ndI2SInAttribute.mI2S_SAMPLERATE); //select I2S
+     SetCLkBclk(MclkDiv0,  m2ndI2SInAttribute.mI2S_SAMPLERATE, 2, Soc_Aud_I2S_WLEN_WLEN_32BITS); 
+      Afe_Set_Reg(AUDIO_CLK_AUDDIV_0, 0x30000100, AFE_MASK_ALL);//
+       Afe_Set_Reg(AUDIO_CLK_AUDDIV_1, 0x00000007, AFE_MASK_ALL); 
+     
 	   Set2ndI2SIn(&m2ndI2SInAttribute);
   
 	    Set2ndI2SInEnable(true);
@@ -672,7 +693,7 @@ static int mtk_capture_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
     switch (cmd)
     {
         case SNDRV_PCM_TRIGGER_START:
-        case SNDRV_PCM_TRIGGER_RESUME:
+ //       case SNDRV_PCM_TRIGGER_RESUME:
 		if(substream->stream ==SNDRV_PCM_STREAM_CAPTURE)
 		{
 			if(substream->runtime->rate == Samp_96)
@@ -685,7 +706,7 @@ static int mtk_capture_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		}
             return mtk_capture_alsa_start(substream);
         case SNDRV_PCM_TRIGGER_STOP:
-        case SNDRV_PCM_TRIGGER_SUSPEND:		
+  //      case SNDRV_PCM_TRIGGER_SUSPEND:		
 		ret=mtk_capture_alsa_stop(substream);
 		if(substream->stream ==SNDRV_PCM_STREAM_CAPTURE)
 		{

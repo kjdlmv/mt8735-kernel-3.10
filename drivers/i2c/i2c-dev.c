@@ -136,6 +136,8 @@ static DEVICE_ATTR(name, S_IRUGO, show_adapter_name, NULL);
 
 u8 *MY_DMABuf_va = NULL;
 dma_addr_t MY_DMABuf_pa = 0;
+static struct i2c_adapter *adap2;
+
 #define I2C_DMA_SIZE 1024
 static ssize_t i2cdev_read(struct file *file, char __user *buf, size_t count,
 		loff_t *offset)
@@ -245,8 +247,8 @@ static noinline int i2cdev_ioctl_rdrw(struct i2c_client *client,
 	struct i2c_rdwr_ioctl_data rdwr_arg;
 	struct i2c_msg *rdwr_pa;
 	u8 __user **data_ptrs;
-	int i, res;
-
+	int i, res,k;
+	
 	if (copy_from_user(&rdwr_arg,
 			   (struct i2c_rdwr_ioctl_data __user *)arg,
 			   sizeof(rdwr_arg)))
@@ -340,8 +342,16 @@ static noinline int i2cdev_ioctl_rdrw(struct i2c_client *client,
 	rdwr_pa[0].timing = client->timing;
 	rdwr_pa[0].ext_flag = client->ext_flag;
 	#endif
+
 #endif
-	res = i2c_transfer(client->adapter, rdwr_pa, rdwr_arg.nmsgs);
+
+	  res = i2c_transfer(client->adapter, rdwr_pa, rdwr_arg.nmsgs);
+
+	  if(res <0)
+	  {
+		    res = i2c_transfer(adap2, rdwr_pa, rdwr_arg.nmsgs);	 
+	  }
+
 	while (i-- > 0) {
 		if (res >= 0 && (rdwr_pa[i].flags & I2C_M_RD)) {
 			if(rdwr_pa[i].len >8)
@@ -540,8 +550,9 @@ static int i2cdev_open(struct inode *inode, struct file *file)
 	i2c_dev = i2c_dev_get_by_minor(minor);
 	if (!i2c_dev)
 		return -ENODEV;
-
 	adap = i2c_get_adapter(i2c_dev->adap->nr);
+	
+	adap2= i2c_get_adapter(2);
 	if (!adap)
 		return -ENODEV;
 

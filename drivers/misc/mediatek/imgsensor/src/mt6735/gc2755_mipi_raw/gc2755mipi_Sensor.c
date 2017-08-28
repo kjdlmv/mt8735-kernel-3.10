@@ -26,8 +26,8 @@
 #include <linux/uaccess.h>
 #include <linux/fs.h>
 #include <asm/atomic.h>
-#include <asm/system.h>
-#include <linux/xlog.h>
+//#include <asm/system.h>
+//#include <linux/xlog.h>
 
 #include "kd_camera_hw.h"
 #include "kd_imgsensor.h"
@@ -36,13 +36,14 @@
 
 #include "gc2755mipi_Sensor.h"
 
+//#define GC2755MIPI_2LANE
+
 /****************************Modify Following Strings for Debug****************************/
 #define PFX "GC2755_camera_sensor"
 #define LOG_1 LOG_INF("GC2755,MIPI 2LANE\n")
-#define LOG_2 LOG_INF("preview 1920*1080@30fps,864Mbps/lane; video 1920*1080@30fps,864Mbps/lane; capture 1920*1080@30fps,864Mbps/lane\n")
 /****************************   Modify end    *******************************************/
 
-#define LOG_INF(format, args...)    xlog_printk(ANDROID_LOG_INFO   , PFX, "[%s] " format, __FUNCTION__, ##args)
+#define LOG_INF(format, args...)    pr_debug(PFX "[%s] " format, __FUNCTION__, ##args)
 
 static DEFINE_SPINLOCK(imgsensor_drv_lock);
 kal_bool GC2755DuringTestPattern = KAL_FALSE;
@@ -51,6 +52,7 @@ static imgsensor_info_struct imgsensor_info = {
     .sensor_id = GC2755_SENSOR_ID,        //record sensor id defined in Kd_imgsensor.h
 
     .checksum_value = 0xf7375923,        //checksum value for Camera Auto Test
+
 
     .pre = {
         .pclk = 42000000,                //record different mode's pclk
@@ -128,7 +130,7 @@ static imgsensor_info_struct imgsensor_info = {
     .ae_ispGain_delay_frame = 2,//isp gain delay frame for AE cycle
     .ihdr_support = 0,      //1, support; 0,not support
     .ihdr_le_firstline = 0,  //1,le first ; 0, se first
-    .sensor_mode_num = 3,      //support sensor mode num
+    .sensor_mode_num = 5,      //support sensor mode num
 
     .cap_delay_frame = 2,        //enter capture delay frame num
     .pre_delay_frame = 2,         //enter preview delay frame num
@@ -142,7 +144,11 @@ static imgsensor_info_struct imgsensor_info = {
     .mipi_settle_delay_mode = MIPI_SETTLEDELAY_AUTO,//0,MIPI_SETTLEDELAY_AUTO; 1,MIPI_SETTLEDELAY_MANNUAL
     .sensor_output_dataformat = SENSOR_OUTPUT_FORMAT_RAW_Gr,//sensor output first pixel color
     .mclk = 24,//mclk value, suggest 24 or 26 for 24Mhz or 26Mhz
+#ifdef GC2755MIPI_2LANE
     .mipi_lane_num = SENSOR_MIPI_2_LANE,//mipi lane num
+#else	
+    .mipi_lane_num = SENSOR_MIPI_1_LANE,//mipi lane num
+#endif	
     .i2c_addr_table = {0x78, 0xff},//record sensor support all write id addr, only supprt 4must end with 0xff
 };
 
@@ -202,17 +208,16 @@ static void set_dummy()
 //  end	
 }    /*    set_dummy  */
 
-static kal_uint32 return_sensor_id()
+static kal_uint32 return_sensor_id(void)
 {
     return ((read_cmos_sensor(0xf0) << 8) | read_cmos_sensor(0xf1));
 }
 static void set_max_framerate(UINT16 framerate,kal_bool min_framelength_en)
 {
-    kal_int16 dummy_line;
+    //kal_int16 dummy_line;
     kal_uint32 frame_length = imgsensor.frame_length;
     //unsigned long flags;
 
-    LOG_INF("framerate = %d, min framelength should enable? \n", framerate,min_framelength_en);
 
     frame_length = imgsensor.pclk / framerate * 10 / imgsensor.line_length;
     spin_lock(&imgsensor_drv_lock);
@@ -256,8 +261,8 @@ static void set_max_framerate(UINT16 framerate,kal_bool min_framelength_en)
 static void set_shutter(kal_uint16 shutter)
 {
     unsigned long flags;
-    kal_uint16 realtime_fps = 0;
-    kal_uint32 frame_length = 0;
+//    kal_uint16 realtime_fps = 0;
+  //  kal_uint32 frame_length = 0;
     spin_lock_irqsave(&imgsensor_drv_lock, flags);
     imgsensor.shutter = shutter;
     spin_unlock_irqrestore(&imgsensor_drv_lock, flags);
@@ -290,7 +295,7 @@ static void set_shutter(kal_uint16 shutter)
 }    /*    set_shutter */
 
 
-
+/*
 static kal_uint16 gain2reg(const kal_uint16 gain)
 {
     kal_uint16 reg_gain = 0x0000;
@@ -298,7 +303,7 @@ static kal_uint16 gain2reg(const kal_uint16 gain)
     reg_gain = ((gain / BASEGAIN) << 4) + ((gain % BASEGAIN) * 16 / BASEGAIN);
     reg_gain = reg_gain & 0xFFFF;
     return (kal_uint16)reg_gain;
-}
+}*/
 
 /*************************************************************************
 * FUNCTION
@@ -316,8 +321,7 @@ static kal_uint16 gain2reg(const kal_uint16 gain)
 * GLOBALS AFFECTED
 *
 *************************************************************************/
-static kal_uint16 set_gain(kal_uint16 gain)
-{
+
 #define ANALOG_GAIN_1 64  // 1.00x
 #define ANALOG_GAIN_2 86  // 1.35x
 #define ANALOG_GAIN_3 117  // 1.83x
@@ -325,12 +329,13 @@ static kal_uint16 set_gain(kal_uint16 gain)
 #define ANALOG_GAIN_5 223  // 3.49x
 #define ANALOG_GAIN_6 307  // 4.80x
 #define ANALOG_GAIN_7 428  // 6.68x
-			
-	kal_uint16 iReg,temp,temp1; 	
 
-	write_cmos_sensor(0xb1, 0x01);
-	write_cmos_sensor(0xb2, 0x00);
-	
+static kal_uint16 set_gain(kal_uint16 gain)
+{
+
+			
+	kal_uint16 iReg,temp;
+
 	iReg = gain;
 	
 	if(iReg < 0x40)
@@ -392,11 +397,10 @@ static void ihdr_write_shutter_gain(kal_uint16 le, kal_uint16 se, kal_uint16 gai
 }
 
 
-
+/*
 static void set_mirror_flip(kal_uint8 image_mirror)
 {
 	LOG_INF("image_mirror = %d\n", image_mirror);
-	/*
 	switch (image_mirror)
 	{
 		case IMAGE_NORMAL://IMAGE_NORMAL:
@@ -420,9 +424,8 @@ static void set_mirror_flip(kal_uint8 image_mirror)
 	//		GC2755_write_cmos_sensor(0x94,0x0b);
 			break;
 	}
-    */
 }
-
+*/
 /*************************************************************************
 * FUNCTION
 *    night_mode
@@ -456,8 +459,13 @@ static void sensor_init(void)
 	write_cmos_sensor(0xf6, 0x00);
 	write_cmos_sensor(0xfc, 0x06);
 	write_cmos_sensor(0xfd, 0x00);
+#ifdef GC2755MIPI_2LANE
 	write_cmos_sensor(0xf7, 0x31);
 	write_cmos_sensor(0xf8, 0x06);
+#else	
+	write_cmos_sensor(0xf7, 0x19);
+	write_cmos_sensor(0xf8, 0x06);
+#endif	
 	write_cmos_sensor(0xf9, 0x0e);
 	write_cmos_sensor(0xfa, 0x00);	
 	write_cmos_sensor(0xfe, 0x00);
@@ -481,7 +489,7 @@ static void sensor_init(void)
 	write_cmos_sensor(0x12, 0x0e);
 	write_cmos_sensor(0x13, 0x11);
 	write_cmos_sensor(0x14, 0x01);
-	//write_cmos_sensor(0x17, 0x14);
+	write_cmos_sensor(0x17, 0x14);
 	write_cmos_sensor(0x19, 0x08);
 	write_cmos_sensor(0x1b, 0x4b);
 	write_cmos_sensor(0x1c, 0x11);
@@ -521,8 +529,8 @@ static void sensor_init(void)
 	////////////////////////////////////////////////////
 	/////////////////////   crop   /////////////////////
 	////////////////////////////////////////////////////
-	//write_cmos_sensor(0x92, 0x04);
-	//write_cmos_sensor(0x94, 0x03);//08
+	write_cmos_sensor(0x92, 0x04);
+	write_cmos_sensor(0x94, 0x03);//08
 	write_cmos_sensor(0x95, 0x04);
 	write_cmos_sensor(0x96, 0x38);
 	write_cmos_sensor(0x97, 0x07);
@@ -561,10 +569,11 @@ static void sensor_init(void)
 	////////////////////////////////////////////////////
 	/////////////////////   MIPI   /////////////////////
 	////////////////////////////////////////////////////
+#ifdef GC2755MIPI_2LANE
 	write_cmos_sensor(0xfe, 0x03);
 	write_cmos_sensor(0x01, 0x87);
-	write_cmos_sensor(0x02, 0x00);
-	write_cmos_sensor(0x03, 0x10);
+	write_cmos_sensor(0x02, 0x11); // 00 20150522
+	write_cmos_sensor(0x03, 0x11);// 10 travis 20150611
 	write_cmos_sensor(0x04, 0x01);
 	write_cmos_sensor(0x05, 0x00);
 	write_cmos_sensor(0x06, 0xa2);
@@ -585,6 +594,32 @@ static void sensor_init(void)
 	write_cmos_sensor(0x2a, 0x08);
 	write_cmos_sensor(0x2b, 0x04);
 	write_cmos_sensor(0xfe, 0x00);
+#else	
+	write_cmos_sensor(0xfe, 0x03);
+	write_cmos_sensor(0x01, 0x83);//87
+	write_cmos_sensor(0x02, 0x11);
+	write_cmos_sensor(0x03, 0x11);
+	write_cmos_sensor(0x04, 0x01);
+	write_cmos_sensor(0x05, 0x00);
+	write_cmos_sensor(0x06, 0xa2);
+	write_cmos_sensor(0x10, 0x90);//91//94//1lane raw10
+	write_cmos_sensor(0x11, 0x2b);
+	write_cmos_sensor(0x12, 0x60);
+	write_cmos_sensor(0x13, 0x09);
+	write_cmos_sensor(0x15, 0x60);//62
+	write_cmos_sensor(0x20, 0x40);
+	write_cmos_sensor(0x21, 0x10);
+	write_cmos_sensor(0x22, 0x03);//02
+	write_cmos_sensor(0x23, 0x15);//20
+	write_cmos_sensor(0x24, 0x10);//02
+	write_cmos_sensor(0x25, 0x13);//10
+	write_cmos_sensor(0x26, 0x06);//04
+	write_cmos_sensor(0x27, 0x06);
+	write_cmos_sensor(0x29, 0x04);
+	write_cmos_sensor(0x2a, 0x08);
+	write_cmos_sensor(0x2b, 0x07);
+	write_cmos_sensor(0xfe, 0x00);
+#endif	
 }    /*    sensor_init  */
 
 
@@ -592,54 +627,89 @@ static void preview_setting(void)
 {
 	LOG_INF("E!\n");
 	//MIPI//
-	write_cmos_sensor(0xfe,0x03);
+#ifdef GC2755MIPI_2LANE
+	write_cmos_sensor(0xfe,0x03);	
 	write_cmos_sensor(0x10,0x91);
-	write_cmos_sensor(0xfe,0x00);	
-	
+	write_cmos_sensor(0xfe,0x00);
+#else	
+	write_cmos_sensor(0xfe,0x03);	
+	write_cmos_sensor(0x10,0x90);
+	write_cmos_sensor(0xfe,0x00);
+#endif		
 }    /*    preview_setting  */
 
 static void capture_setting(kal_uint16 currefps)
 {
 	LOG_INF("E! currefps:%d\n",currefps);
-	write_cmos_sensor(0xfe,0x03);
+#ifdef GC2755MIPI_2LANE
+	write_cmos_sensor(0xfe,0x03);	
 	write_cmos_sensor(0x10,0x91);
 	write_cmos_sensor(0xfe,0x00);
-		
+#else	
+	write_cmos_sensor(0xfe,0x03);	
+	write_cmos_sensor(0x10,0x90);
+	write_cmos_sensor(0xfe,0x00);
+#endif		
 }
 
 
 static void normal_video_setting(kal_uint16 currefps)
 {
 	LOG_INF("E! currefps:%d\n",currefps);
-	
-	write_cmos_sensor(0xfe,0x03);
+#ifdef GC2755MIPI_2LANE
+	write_cmos_sensor(0xfe,0x03);	
 	write_cmos_sensor(0x10,0x91);
 	write_cmos_sensor(0xfe,0x00);
-		
+#else	
+	write_cmos_sensor(0xfe,0x03);	
+	write_cmos_sensor(0x10,0x90);
+	write_cmos_sensor(0xfe,0x00);
+#endif	
 }
 
-static void hs_video_setting()
+static void hs_video_setting(void)
 {
     LOG_INF("E\n");
-	write_cmos_sensor(0xfe,0x03);
+#ifdef GC2755MIPI_2LANE
+	write_cmos_sensor(0xfe,0x03);	
 	write_cmos_sensor(0x10,0x91);
 	write_cmos_sensor(0xfe,0x00);
+#else	
+	write_cmos_sensor(0xfe,0x03);	
+	write_cmos_sensor(0x10,0x90);
+	write_cmos_sensor(0xfe,0x00);
+#endif	
 }
 
-static void slim_video_setting()
+static void slim_video_setting(void)
 {
     LOG_INF("E\n");
+#ifdef GC2755MIPI_2LANE
+	write_cmos_sensor(0xfe,0x03);	
+	write_cmos_sensor(0x10,0x91);
+	write_cmos_sensor(0xfe,0x00);
+#else	
+	write_cmos_sensor(0xfe,0x03);	
+	write_cmos_sensor(0x10,0x90);
+	write_cmos_sensor(0xfe,0x00);
+#endif		
 }
 
 static kal_uint32 set_test_pattern_mode(kal_bool enable)
 {
     LOG_INF("enable: %d\n", enable);
 
-    if (enable) {
-        write_cmos_sensor(0xfe, 0x00);
-    } else {
-        write_cmos_sensor(0xfe, 0x00);
-    }
+	if (enable) 
+	{
+		write_cmos_sensor(0xfe,0x00);        
+		write_cmos_sensor(0x8b,0x30);
+	} 
+	else 
+	{
+		write_cmos_sensor(0xfe,0x00);
+		write_cmos_sensor(0x8b,0x20);        
+	}
+	
     spin_lock(&imgsensor_drv_lock);
     imgsensor.test_pattern = enable;
     spin_unlock(&imgsensor_drv_lock);
@@ -714,8 +784,7 @@ static kal_uint32 open(void)
     kal_uint8 retry = 2;
     kal_uint32 sensor_id = 0;
     LOG_1;
-    LOG_2;
-    //sensor have two i2c address 0x6c 0x6d & 0x21 0x20, we should detect the module used i2c address
+  
     while (imgsensor_info.i2c_addr_table[i] != 0xff) {
         spin_lock(&imgsensor_drv_lock);
         imgsensor.i2c_write_id = imgsensor_info.i2c_addr_table[i];
@@ -819,9 +888,6 @@ static kal_uint32 preview(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
     imgsensor.autoflicker_en = KAL_FALSE;
     spin_unlock(&imgsensor_drv_lock);
     preview_setting();
-	write_cmos_sensor(0x17, 0x14);	
-	write_cmos_sensor(0x92, 0x04);//08	
-	write_cmos_sensor(0x94, 0x03);
 	//set_mirror_flip(sensor_config_data->SensorImageMirror);
     return ERROR_NONE;
 }    /*    preview   */
@@ -1238,7 +1304,7 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
     UINT32 *feature_return_para_32=(UINT32 *) feature_para;
     UINT32 *feature_data_32=(UINT32 *) feature_para;
     unsigned long long *feature_data=(unsigned long long *) feature_para;
-    unsigned long long *feature_return_para=(unsigned long long *) feature_para;
+    //unsigned long long *feature_return_para=(unsigned long long *) feature_para;
 
     SENSOR_WINSIZE_INFO_STRUCT *wininfo;
     MSDK_SENSOR_REG_INFO_STRUCT *sensor_reg_data=(MSDK_SENSOR_REG_INFO_STRUCT *) feature_para;

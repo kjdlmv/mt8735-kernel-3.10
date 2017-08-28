@@ -24,6 +24,8 @@
 #include <mach/mt_gpio.h>
 #include <mach/eint.h>
 #include <mach/mt_pm_ldo.h>
+#include <linux/wakelock.h>
+#include <linux/earlysuspend.h>
 
 //  mem define
 //static unsigned int map_io_base;
@@ -309,6 +311,55 @@ static int i2c_driver_cx20810_detect(struct i2c_client * client, struct i2c_boar
     }
     return ENODEV;
 }
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifdef CONFIG_EARLYSUSPEND
+int yyd_lock_system=false;
+
+  static void reset_cx2008(void)
+{
+	mt_set_gpio_out(GPIO128_ADC_RST2_PIN,1);
+  	 mdelay(30);
+	mt_set_gpio_out(GPIO128_ADC_RST2_PIN,0);
+	mdelay(30);
+	mt_set_gpio_out(GPIO128_ADC_RST2_PIN,1);
+	mdelay(30);
+	cx20810_init(0, CX20810_NORMAL_MODE);
+	  printk("111add35=%x\n",ADC_i2c_read_reg(0x10,0) );
+
+	  mt_set_gpio_out(GPIO171_ADC_RST1_PIN,1);
+	  mdelay(30);
+	  mt_set_gpio_out(GPIO171_ADC_RST1_PIN,0);
+	   mdelay(30);
+	   mt_set_gpio_out(GPIO171_ADC_RST1_PIN,1);
+	   mdelay(30);  
+            cx20810_init(1, CX20810_NORMAL_MODE);
+	printk("111add3b=%x\n",ADC_i2c_read_reg(0x10,1) );
+
+}
+  static void m_suspend( struct early_suspend *h )
+  {
+  	if(yyd_lock_system)
+	 mt_set_gpio_out(GPIO44_3_3V_PIN,0);
+  }
+  
+  static void m_resume( struct early_suspend *h )
+  {
+ 	 if(yyd_lock_system)
+ 	 {
+ 	 mt_set_gpio_out(GPIO44_3_3V_PIN,1);
+	 mdelay(10);
+	reset_cx2008();
+ 	 }
+  }
+  
+  static struct early_suspend misc_early_suspend_handler = {
+	  .level = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1,
+	  .suspend = m_suspend,
+	  .resume = m_resume,
+  };
+  
+#endif
+#endif
 
 static struct i2c_driver i2c_driver_cx20810=
 {
@@ -359,6 +410,12 @@ static int __init i2c_driver_cx20810_init(void)
 	 a=0;
 	 }
   i2c_register_board_info(3, cx20810_dev, 2);
+
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	#ifdef CONFIG_EARLYSUSPEND
+	register_early_suspend(&misc_early_suspend_handler);
+	#endif
+	#endif
 
     return i2c_add_driver(&i2c_driver_cx20810);
 

@@ -45,6 +45,8 @@
     //#error "Please inlcude the proper header file based on the right platform!"
 #endif
 
+#define V_90 0
+
 /*---------------------------------------------------------------------------*/
 static struct acc_hw mir3da_cust_acc =
 {

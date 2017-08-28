@@ -21,6 +21,12 @@
 #include <mach/mt_gpio.h>
 #include <mach/eint.h>
 
+#include "i2c_wrapper.h"
+
+#define FPGA_ADDR 0x80;
+static I2C_GPIO_T fpga_dev;
+static I2C_GPIO_T *pfpga_dev;
+
 //  mem define
 //static unsigned int map_io_base;
 static void __iomem *map_io_base;
@@ -70,6 +76,7 @@ static struct delayed_work fpga_reset_work;
 
 static struct i2c_msg * i2c_recev_msg;
 static int current_msg_pos;
+static bool firstflag=true;
 #if 0
 static void fpga_hw_init(void)
 {
@@ -115,7 +122,8 @@ int send_to_device(char * data, int count)
 //	printk("Timothy:fpga_loader.c->send_to_device(), count = %d\n", count);
 	int nwrite;
 	int i;
-
+		
+		
 	if(data[0] == 0) // STOP causes this, send stop
 	{
 //		printk("the data send to device is:");
@@ -124,7 +132,9 @@ int send_to_device(char * data, int count)
 //			printk("%x ", data[i]);
 //		}
 //		printk("\n");
-		nwrite = i2c_master_send(fpga_client, &data[1], count-1);
+		//nwrite = i2c_master_send(fpga_client, &data[1], count-1);
+
+		nwrite =i2c_write_buf(pfpga_dev,  &data[1],count-1);
 		if(nwrite != count-1)
 		{
 			printk("Timothy:not write enough, nwrite = %d, count = %d\n", nwrite, count);
@@ -148,7 +158,7 @@ int send_to_device(char * data, int count)
 			printk("%x ", data[i]);
 		}
 		printk("\n");
-		i2c_recev_msg[current_msg_pos].addr = i2c_fpga_addr[0];
+		i2c_recev_msg[current_msg_pos].addr =i2c_fpga_addr[0];
 		i2c_recev_msg[current_msg_pos].len = count -1;
 		i2c_recev_msg[current_msg_pos].buf = (unsigned char *)kzalloc(i2c_recev_msg[current_msg_pos].len * sizeof(unsigned char), GFP_KERNEL);
 		memcpy(i2c_recev_msg[current_msg_pos].buf, &data[1], i2c_recev_msg[current_msg_pos].len);
@@ -158,15 +168,18 @@ int send_to_device(char * data, int count)
 	else if(data[0] == 2)
 	{
 		
-		nwrite = i2c_master_send(fpga_client, fpga_refresh_command, 3);
+		//nwrite = i2c_master_send(fpga_client, fpga_refresh_command, 3);
+		nwrite =i2c_write_buf(pfpga_dev,  fpga_refresh_command,3);
 		printk("Timothy:send refresh command now =%d\n",nwrite);
 		return nwrite;
 	}
 	else if(data[0] == 3)
 	{
 		printk("Timothy:send none command now\n");
-		nwrite = i2c_master_send(fpga_client, fpga_none_command, 4);
-		nwrite = i2c_master_send(fpga_client, fpga_none_command, 4);
+		//nwrite = i2c_master_send(fpga_client, fpga_none_command, 4);
+		//nwrite = i2c_master_send(fpga_client, fpga_none_command, 4);
+		nwrite =i2c_write_buf(pfpga_dev,  fpga_none_command,4);
+		nwrite =i2c_write_buf(pfpga_dev,  fpga_none_command,4);
 		return nwrite;
 	}
 	else
@@ -183,8 +196,12 @@ int receive_from_device(char * data, int count)
 {
 	printk("Timothy:fpga_loader.c->receive_from_device()\n");
 	int nread;
-	int i, j;
+	int i, j,len;
+	char *ret_buf;
+	//char regbuf[4]={0xe0};
+	ret_buf=data;
 
+	
 	if(current_msg_pos >= 8)
 	{
 		printk("Timothy:buf is overflow, quit");
@@ -201,14 +218,15 @@ int receive_from_device(char * data, int count)
 	{
 		for(j = 0; j < i2c_recev_msg[i].len; j++)
 		{
-			printk("%x ", i2c_recev_msg[i].buf[j]);
+			printk("%x ,", i2c_recev_msg[i].buf[j]);
 		}
 	}
 	printk("\n");
 #endif		
 		
-	nread = i2c_transfer(fpga_client->adapter, i2c_recev_msg, current_msg_pos);
-	
+	//nread = i2c_transfer(fpga_client->adapter, i2c_recev_msg, current_msg_pos);
+	      nread =i2c_read_reg_org(pfpga_dev,i2c_recev_msg[current_msg_pos-2].buf,i2c_recev_msg[current_msg_pos-2].len,ret_buf,count);		
+#if 0		
 	if(nread != current_msg_pos)
 	{
 		printk("Timothy:not read enough, nread = %d, current_msg_pos = %d\n", nread, current_msg_pos);
@@ -217,7 +235,7 @@ int receive_from_device(char * data, int count)
 	{
 		printk("Timothy:read success, current_msg_pos = %d\n", current_msg_pos);
 	}
-
+#endif
 	printk("Timothy:the data read from i2c is:");
 	for(i = 0; i < count; i++)
 	{
@@ -241,15 +259,38 @@ int receive_from_device(char * data, int count)
 
 EXPORT_SYMBOL(receive_from_device);
 
+void init_i2c_io(void)
+{
+	pfpga_dev=&fpga_dev;
+	   pfpga_dev->sda=(GPIO105|0x80000000);
+	  pfpga_dev->scl=(GPIO106|0x80000000);
+	  pfpga_dev->addr=FPGA_ADDR;
+	  
+	i2c_init_gpio(pfpga_dev);
+
+}
 static int i2c_driver_fpga_probe(struct i2c_client * client, const struct i2c_device_id* id)
 {
+#if 0  //later  open
+		if(firstflag)
+		{
+		  pfpga_dev=&fpga_dev;
+		   pfpga_dev->sda=(GPIO105|0x80000000);
+		  pfpga_dev->scl=(GPIO106|0x80000000);
+		  pfpga_dev->addr=FPGA_ADDR;
+		  
+		i2c_init_gpio(pfpga_dev);
+		firstflag=false;
+		}
+#endif	
 		
 	printk("Timothy:fpga_loader.c->i2c_driver_fpga_probe()\ add=0x%x\n",client->addr);
 	if((client->addr == i2c_fpga_addr[0]))
 	{
 		fpga_client = client;
 		printk("Timothy:fpga (%x) init ok\n", client->addr);
-	}
+	}	
+  
 	return 0;
 }
 

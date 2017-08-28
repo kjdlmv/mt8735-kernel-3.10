@@ -100,7 +100,6 @@
 #define GC2355F_SENSOR_ID			0x2355
 #define GC2355_SENSOR_ID			0x2355
 #define GC2355B_SENSOR_ID			0x2356
-#define OV5648MIPI_SENSOR_ID                    0x5648
 #define HI551_SENSOR_ID			    0x0551
 #define HI841_SENSOR_ID			    0x0841
 #define GC2145_SENSOR_ID                        0x2145
@@ -117,9 +116,11 @@
 #define GC0409MIPI_SENSOR_ID 0x0409
 #define SP0A09MIPI_SENSOR_ID										0x0a09
 #define HI545MIPI_SENSOR_ID	0x2555
-
-
-
+#define GC5005MIPI_SENSOR_ID               		 0x5005
+#define OV5695MIPI_SENSOR_ID                    0x5695
+#define OV8856_SENSOR_ID						0x885a
+#define OV5648MIPI_SENSOR_ID						0x5648
+#define S5K3H5XA_SENSOR_ID 				0x3085
 /* CAMERA DRIVER NAME */
 #define CAMERA_HW_DEVNAME            "kd_camera_hw"
 
@@ -132,7 +133,6 @@
 #define SENSOR_DRVNAME_GC2755_MIPI_RAW   "gc2755mipiraw"
 #define SENSOR_DRVNAME_GC2755_SUB_MIPI_RAW   "gc2755submipiraw"
 #define SENSOR_DRVNAME_GC2355B_MIPI_RAW   "gc2355bmipiraw"
-#define SENSOR_DRVNAME_OV5648_MIPI_RAW   	"ov5648mipi"
 #define SENSOR_DRVNAME_HI551_MIPI_RAW   "hi551mipiraw"
 #define SENSOR_DRVNAME_HI841_MIPI_RAW   "hi841mipiraw"
 #define SENSOR_DRVNAME_GC2145_MIPI_YUV          "gc2145mipiyuv"
@@ -145,9 +145,11 @@
 #define SENSOR_DRVNAME_GC5024_MIPI_RAW          "gc5024mipiraw"
 #define SENSOR_DRVNAME_HI545_MIPI_RAW               "hi545mipiraw"
 #define SENSOR_DRVNAME_OV2680_MIPI_RAW  "ov2680mipiraw"
-
-
-
+#define SENSOR_DRVNAME_GC5005_MIPI_RAW   "gc5005mipiraw"
+#define SENSOR_DRVNAME_OV5695_MIPI_RAW          "ov5695mipi"
+#define SENSOR_DRVNAME_OV8856_MIPI_RAW          "ov8856mipi"
+#define SENSOR_DRVNAME_OV5648_MIPI_RAW   	"ov5648mipi"
+#define SENSOR_DRVNAME_S5K3H5XA_MIPI_RAW  "s5k3h5xamipiraw"
 /*******************************************************************************
 *
 ********************************************************************************/

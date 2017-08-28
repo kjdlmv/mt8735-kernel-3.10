@@ -19,7 +19,7 @@
 #define __MIR3DA_CORE_H__
 
 #define CUST_VER                            ""                                          /* for Custom debug version */
-#define CORE_VER                            "3.3.0_2015-08-25-14:53:30_"CUST_VER
+#define CORE_VER                            "3.5.1_2017-01-03-11:25:30_"CUST_VER
  
 #define MIR3DA_SUPPORT_CHIP_LIST            MIR_NSA_NTO
  
@@ -28,12 +28,12 @@
 #define MIR3DA_STK_TEMP_SOLUTION            1
 #define MIR3DA_OFFSET_TEMP_SOLUTION         1
 #if MIR3DA_OFFSET_TEMP_SOLUTION
-#define MIR3DA_AUTO_CALIBRATE               1
+#define MIR3DA_AUTO_CALIBRATE               0
 #else
 #define MIR3DA_AUTO_CALIBRATE               0
 #endif /* !MIR3DA_OFFSET_TEMP_SOLUTION */
 #if MIR3DA_AUTO_CALIBRATE
-#define MIR3DA_SUPPORT_FAST_AUTO_CALI       1
+#define MIR3DA_SUPPORT_FAST_AUTO_CALI       0
 #else
 #define MIR3DA_SUPPORT_FAST_AUTO_CALI       0
 #endif 
@@ -41,6 +41,7 @@
 #define FILTER_AVERAGE_ENHANCE              0
 #define FILTER_AVERAGE_EX                   0
 #define MIR3DA_SUPPORT_MULTI_LAYOUT         0
+#define YZ_CROSS_TALK_ENABLE                0 
 
 #define MIR3DA_OFFSET_LEN                   9
 
@@ -198,6 +199,7 @@ typedef struct _int_operations {
 #define NSA_REG_SENS_COMP               0x8c
 #define NSA_REG_MEMS_OPTION             0x8f
 #define NSA_REG_CHIP_INFO               0xc0
+#define NSA_REG_CHIP_INFO_SECOND        0xc1
 #define NSA_REG_SENS_COARSE_TRIM        0xd1
                                          
 #define MIR3DA_ODR_50HZ                  0
@@ -270,6 +272,7 @@ void manual_load_cali_file(MIR_HANDLE handle);
 int mir3da_interrupt_ops(MIR_HANDLE handle, mir_int_ops_t *ops);
 
 int cycle_read_xyz(MIR_HANDLE handle, int* x, int* y, int* z, int ncycle);
+char get_cali_caliing(void);
 
 int mir3da_read_offset(MIR_HANDLE handle, unsigned char* offst);
 int mir3da_write_offset(MIR_HANDLE handle, unsigned char* offset);

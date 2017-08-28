@@ -1594,8 +1594,11 @@ extern int rtc_capatiy_test;
 static void mt_battery_update_EM(struct battery_data *bat_data)
 {	
 	
-	BMT_status.UI_SOC=BMT_status.SOC;//li fei
-
+	if(BMT_status.SOC <0) BMT_status.SOC=1;
+	else if(BMT_status.SOC>100)BMT_status.SOC=100;
+	
+	 BMT_status.UI_SOC= BMT_status.SOC;
+	 
 	bat_data->BAT_CAPACITY = BMT_status.UI_SOC;			
 	bat_data->BAT_TemperatureR = BMT_status.temperatureR;	/* API */
 	bat_data->BAT_TempBattVoltage = BMT_status.temperatureV;	/* API */
@@ -1747,9 +1750,9 @@ static kal_bool mt_battery_0Percent_tracking_check(void)
 #endif // #ifndef DISABLE_DLPT_FEATURE		
 	} else {
 		if (BMT_status.bat_vol > SYSTEM_OFF_VOLTAGE && BMT_status.UI_SOC > 1) {
-			BMT_status.UI_SOC--;
+			//BMT_status.UI_SOC--;
 		} else if (BMT_status.bat_vol <= SYSTEM_OFF_VOLTAGE) {
-			BMT_status.UI_SOC--;
+			//BMT_status.UI_SOC--;
 		} 
 		
 		reboot_cnt=0;
@@ -1773,13 +1776,13 @@ static void mt_battery_Sync_UI_Percentage_to_Real(void)
 		{
 			if (timer_counter == (SYNC_TO_REAL_TRACKING_TIME / BAT_TASK_PERIOD)) 
 			{
-			BMT_status.UI_SOC--;
+		//	BMT_status.UI_SOC--;
 			timer_counter = 0;
 			} 
 #ifdef FG_BAT_INT
 			else if(fg_wake_up_bat==KAL_TRUE)
 			{
-				BMT_status.UI_SOC--;	
+			//	BMT_status.UI_SOC--;	
 			}
 #endif //#ifdef FG_BAT_INT			
 			else 
@@ -2272,6 +2275,7 @@ void mt_battery_GetBatteryData(void)
 	temperatureV = battery_meter_get_tempV();
 	temperatureR = battery_meter_get_tempR(temperatureV);
 #endif
+/*
 	if (bat_meter_timeout == KAL_TRUE || bat_spm_timeout == TRUE || fg_wake_up_bat== KAL_TRUE) 
 	{
 		//SOC = battery_meter_get_battery_percentage();
@@ -2286,12 +2290,19 @@ void mt_battery_GetBatteryData(void)
 		bat_meter_timeout = KAL_FALSE;
 		bat_spm_timeout = FALSE;
 	} else {
-		if (previous_SOC == -1)
+		//if (previous_SOC == -1)
 			//SOC = battery_meter_get_battery_percentage();
 			SOC =battery_meter_to_ui_persent(12,true);
-		else
-			SOC = previous_SOC;
+		//else
+		//	SOC = previous_SOC;
 	}
+*/	
+		if(firstflag)
+			SOC =battery_meter_to_ui_persent(12,true);
+		else
+			SOC =battery_meter_to_ui_persent(12,false);
+		firstflag=0;
+
 #if 1
 	ZCV = battery_meter_get_battery_zcv();
 
@@ -2320,9 +2331,11 @@ void mt_battery_GetBatteryData(void)
 	}
 	else
 	{
+	BMT_status.temperature =28;
+	/*
 	BMT_status.temperature =
 	    mt_battery_average_method(BATTERY_AVG_TEMP, &batteryTempBuffer[0], temperature, &temperature_sum,
-				      batteryIndex);
+				      batteryIndex);*/
 	}
 
 	BMT_status.Vsense = Vsense;
@@ -2782,6 +2795,7 @@ CHARGER_TYPE mt_charger_type_detection(void)
 				battery_meter_initial();
 					
 			//BMT_status.SOC = battery_meter_get_battery_percentage(); lifei
+			  BMT_status.SOC =battery_meter_to_ui_persent(12,false);
 		}
 
 		if (BMT_status.bat_vol > 0)
@@ -2988,6 +3002,7 @@ void do_chrdet_int_task(void)
 				battery_meter_initial();
 
 			//BMT_status.SOC = battery_meter_get_battery_percentage(); //li fei
+			    BMT_status.SOC =battery_meter_to_ui_persent(12,false);
 		}
 		//battery_log(BAT_LOG_CRTI, "BMT_status.charger_exist1=%d,BMT_status.bat_vol =%d\n",BMT_status.charger_exist,BMT_status.bat_vol );
 
@@ -3099,7 +3114,7 @@ int bat_thread_kthread(void *x)
 	while (1) {
 		mutex_lock(&bat_mutex);
 
-		if (((chargin_hw_init_done == KAL_TRUE) && (battery_suspended == KAL_FALSE)) || ((chargin_hw_init_done == KAL_TRUE) && (fg_wake_up_bat == KAL_TRUE)))
+		//if (((chargin_hw_init_done == KAL_TRUE) && (battery_suspended == KAL_FALSE)) || ((chargin_hw_init_done == KAL_TRUE) && (fg_wake_up_bat == KAL_TRUE)))
 			BAT_thread();
 
 		mutex_unlock(&bat_mutex);

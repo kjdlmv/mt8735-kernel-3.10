@@ -521,10 +521,12 @@ void kpd_pmic_rstkey_hal(unsigned long pressed){
 	}
 #endif
 }
-
+extern char backlight_status;
 void kpd_pmic_pwrkey_hal(unsigned long pressed){
 #if KPD_PWRKEY_USE_PMIC
 	if(!kpd_sb_enable){
+		//if(backlight_status)
+			//input_report_key(kpd_input_dev, KEY_PLAYPAUSE, 1);
 		input_report_key(kpd_input_dev, KPD_PWRKEY_MAP, pressed);
 		input_sync(kpd_input_dev);
 		if (kpd_show_hw_keycode) {
@@ -551,7 +553,12 @@ void kpd_pwrkey_handler_hal(unsigned long data){
 	input_report_key(kpd_input_dev, KPD_PWRKEY_MAP, pressed);
 	input_sync(kpd_input_dev);
 	kpd_print("report Linux keycode = %u\n", KPD_PWRKEY_MAP);
-
+/*	
+	input_report_key(kpd_input_dev, KEY_PLAYPAUSE, 1);		//daviekuo 2016.11.11
+	input_sync(kpd_input_dev);
+	input_report_key(kpd_input_dev, KEY_PLAYPAUSE, 0);
+	input_sync(kpd_input_dev);
+*/
 	/* for detecting the return to old_state */
 	mt_eint_set_polarity(KPD_PWRKEY_EINT, old_state);
 	mt_eint_unmask(KPD_PWRKEY_EINT);

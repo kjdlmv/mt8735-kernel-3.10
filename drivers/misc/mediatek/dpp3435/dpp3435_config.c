@@ -69,6 +69,7 @@ static const struct i2c_device_id i2c_driver_dpp_id[]=
 #define GPIO_DPP_POWER_PIN   (GPIO125|0x80000000)
 #define GPIO_DPP_POWER_12V  (GPIO21|0x80000000)
 #define GPIO_HDMIPOWER_PIN   (GPIO120|0x80000000)
+#define GPIO_JTCK_PIN   (GPIO71|0x80000000)  //en pin
 
 #define READ_SIZE    64
 
@@ -147,7 +148,8 @@ static const struct i2c_device_id i2c_driver_dpp_id[]=
 		printk("write_dpp3430_i2c  sucess!!\n"); 
 		break;
 		}
-
+	  else 
+	  	printk("write_dpp3430_i2c  fail   subaddr=0x%x \n",subaddr); 
   }
 //  printk("write_dpp3430_i2c  ret=%d,,%x\n",ret,dpp_client->addr);
 
@@ -196,9 +198,9 @@ int Seting_Image_Rotation(int val)
 	ret=write_dpp3430_i2c(DPP3430_DEV_ADDR, 0x14, buf,1);
 	return ret;
 }
-void Setting_Led_Current(uint08 led_drive_current)
+int Setting_Led_Current(uint08 led_drive_current)
 {
-	 uint08 Param[8];
+	 uint08 Param[8],ret=0;
 	 uint08 LOOK[3];
      switch(led_drive_current)
      {
@@ -254,8 +256,11 @@ void Setting_Led_Current(uint08 led_drive_current)
     
      }
 
-     write_dpp3430_i2c (DPP3430_DEV_ADDR, WRITE_LED_CURRENT, Param, 6);
-      write_dpp3430_i2c (DPP3430_DEV_ADDR, 0x22, LOOK, 1);
+     ret= write_dpp3430_i2c (DPP3430_DEV_ADDR, WRITE_LED_CURRENT, Param, 6);
+	  if(ret <0) return -1;
+     ret=  write_dpp3430_i2c (DPP3430_DEV_ADDR, 0x22, LOOK, 1);
+	   if(ret <0) return -1;
+    return ret;	   
 }
 
 void dpp3438_power_on(void)
@@ -272,9 +277,9 @@ void dpp3438_power_on(void)
 	 mt_set_gpio_dir(GPIO_PROJ_PIN, GPIO_DIR_OUT) ;	
 	mt_set_gpio_out(GPIO_PROJ_PIN,1);
 
-	 mt_set_gpio_mode(GPIO_FAN_PIN, GPIO_MODE_00);  
-	mt_set_gpio_dir(GPIO_FAN_PIN, GPIO_DIR_OUT) ;   
-	mt_set_gpio_out(GPIO_FAN_PIN,1);
+	// mt_set_gpio_mode(GPIO_FAN_PIN, GPIO_MODE_00);  
+	//mt_set_gpio_dir(GPIO_FAN_PIN, GPIO_DIR_OUT) ;   
+	//mt_set_gpio_out(GPIO_FAN_PIN,1);
 
 
 }
@@ -286,20 +291,25 @@ void dpp3438_power_off(void)
 	mt_set_gpio_out(GPIO_FAN_PIN,0);
 	
 }
-void dpp3438_logo_show(void)
+
+int dpp3438_logo_show(void)
 {
 	char temp[1],i=0,ret=0;
 	temp[0]=0;
-	write_dpp3430_i2c (0x36, 0x0d, temp, 1);
-	Setting_input_video(2);
+	ret=write_dpp3430_i2c (0x36, 0x0d, temp, 1);
+	 if(ret <0) return -1;
+	ret=Setting_input_video(2);
+	 if(ret <0) return -1;
 	mdelay(30);
 	temp[0]=0;
-	write_dpp3430_i2c (0x36, 0x35, temp, 0);  
+	ret=write_dpp3430_i2c (0x36, 0x35, temp, 0);  
+	 if(ret <0) return -1;
 	for(i=0;i<6;i++)
 	{
 		ret=Setting_input_video(0);
 		if(ret >0)break;
 	}
+	return ret;
 
 }
 
@@ -307,20 +317,51 @@ bool hdmi_open_flag=true;
 int dpp3438_status_flag=0;
 int dpp3438_power_rate=3;
 
+int dpp3438_init(void)
+{
+	int ret=0;
+	dpp3438_power_on();
+	msleep(1800);			
+	ret=dpp3438_logo_show();
+	 if(ret <0) return -1;
+	ret=Setting_Led_Current(dpp3438_power_rate);//13.5w
+
+	return ret;
+}
 static  int dpp_thread_kthread(void *x)
 {
+	int i=0,ret=0;
 	while(1)
 	{
 		  wait_event(dpp3438_thread_wq, (key_switch_flag == 1));
 		  key_switch_flag=0;
 		  if(hdmi_open_flag &&( BMT_status.UI_SOC >30 ||1 == mt_get_gpio_in(CHG_DET_PIN)))//11.2v
-		  {
-			dpp3438_power_on();
-			msleep(1500);
-			dpp3438_logo_show();
-	                    Setting_Led_Current(dpp3438_power_rate);//13.5w			
+		  {	
+		  	for(i=0;i<4;i++)
+		  	{
+				ret=dpp3438_init();
+				 if(ret <0)
+				 {
+					 dpp3438_power_off();
+					 msleep(200);
+				 }
+				 else break;				 	
+		  	}
 			hdmi_open_flag=false;
 			dpp3438_status_flag |=0x1;
+
+		         if((dpp3438_status_flag&0x02) !=0x02) //en pin reset
+		     	{
+		     	   mt_set_gpio_out(GPIO_JTCK_PIN,0);
+				   msleep(100);
+			    mt_set_gpio_out(GPIO_JTCK_PIN,1);	   
+			 }
+
+			 
+			 mt_set_gpio_mode(GPIO_FAN_PIN, GPIO_MODE_00);  
+			mt_set_gpio_dir(GPIO_FAN_PIN, GPIO_DIR_OUT) ;   
+			mt_set_gpio_out(GPIO_FAN_PIN,1);
+
 		  }
 		  else
 		  {

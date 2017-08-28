@@ -1026,7 +1026,15 @@ config MTK_MPU60X0
 config MTK_MIR3DA
         bool "MIR3DA  for MediaTek package"
         default n
+        
+config MTK_MIR3DA_Y20A
+        bool "MIR3DA_Y20A  for MediaTek package"
+        default n
 
+config MISC_Y20A
+        bool "MISC_Y20A  for MediaTek package"
+        default n        
+        
 config MTK_KXTJ2_1009_NEW
         bool "KXTJ2_1009 for MediaTek package"
         default n
@@ -1864,3 +1872,11 @@ config SW_SYNC64
 	  A sync object driver that uses a 64bit counter to coordinate
 	  syncrhronization.  Useful when there is no hardware primitive backing
 	  the synchronization.
+	  
+config MTK_NEW_MOTOR_CODE
+	bool "NEW Motor Drivers SPEC"
+	default n
+	
+config YYD_Y20B_DRV_CODE
+	bool "Y20B Drivers SPEC"
+	default n	

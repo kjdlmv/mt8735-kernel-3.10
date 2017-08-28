@@ -10,6 +10,7 @@
 
 #include <asm/uaccess.h>
 #include <linux/hwmsen_dev.h>
+#include <linux/earlysuspend.h>
 
 #include <asm/uaccess.h>	/* copy_*_user */
 #include <linux/semaphore.h>  
@@ -26,6 +27,7 @@
 #include <mach/battery_common.h>
 #include <mach/mt_boot_common.h>
 
+#include <linux/wakelock.h>
 #include <misc.h>
 
 #define DEV_NAME   "misc-yyd"
@@ -33,6 +35,50 @@ static struct cdev *misc_cdev;
 static dev_t misc_dev;
 static struct class *misc_class = NULL;
 struct device *misc_device = NULL;
+ struct wake_lock yyd_m_lock;
+
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifdef CONFIG_EARLYSUSPEND
+ 
+ static void m_suspend( struct early_suspend *h )
+ {
+#ifdef CONFIG_MISC_Y20A
+
+#else
+
+
+#endif
+
+ //----------------li fei-----------------
+	 mt_set_gpio_out((GPIO101|0x80000000),0);
+ //-----------------------------------
+
+ }
+ 
+ static void m_resume( struct early_suspend *h )
+ {
+ #ifdef CONFIG_MISC_Y20A
+
+#else
+
+
+#endif
+
+ //----------------li fei-----------------
+	 mt_set_gpio_out((GPIO101|0x80000000),1);
+ //-----------------------------------
+
+ }
+ 
+ static struct early_suspend misc_early_suspend_handler = {
+	 .level = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1,
+	 .suspend = m_suspend,
+	 .resume = m_resume,
+ };
+ 
+#endif
+#endif
 
 
  static int misc_release (struct inode *node, struct file *file)
@@ -87,6 +133,12 @@ static int __init misc_init(void)
 	BOOTMODE bootmode = NORMAL_BOOT;
 	printk("misc setting  init  finish--------\n");
 
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	#ifdef CONFIG_EARLYSUSPEND
+	register_early_suspend(&misc_early_suspend_handler);
+	#endif
+	#endif
+
 	
 //Motor
 	mt_set_gpio_mode(MOTOR_RST_PIN, GPIO_MODE_00);
@@ -95,6 +147,7 @@ static int __init misc_init(void)
 
 	mt_set_gpio_mode(MOTOR_BOOT0_PIN, GPIO_MODE_00);
 	mt_set_gpio_dir(MOTOR_BOOT0_PIN, GPIO_DIR_OUT);
+	//mt_set_gpio_pull_enable(MOTOR_BOOT0_PIN, FALSE);
 	mt_set_gpio_out(MOTOR_BOOT0_PIN, 0);
 
 	mt_set_gpio_mode(MOTOR_POWEN_PIN, GPIO_MODE_00);
@@ -117,6 +170,9 @@ static int __init misc_init(void)
 	mt_set_gpio_mode(IRCAM_PWREN_PIN, GPIO_MODE_00);
 	mt_set_gpio_dir(IRCAM_PWREN_PIN, GPIO_DIR_OUT);
 	mt_set_gpio_out(IRCAM_PWREN_PIN, 1);
+	
+	wake_lock_init(&yyd_m_lock, WAKE_LOCK_SUSPEND, "misc"); //davie: forbid deep sleep for 5mic
+	wake_lock(&yyd_m_lock);
 
 //Charger DETECT
 	bootmode = get_boot_mode();
@@ -196,6 +252,8 @@ static void __exit misc_exit(void)
 */
 	mt_set_gpio_dir(IRCAM_PWREN_PIN, GPIO_DIR_OUT);
 	mt_set_gpio_out(IRCAM_PWREN_PIN, 0);
+	
+	wake_lock_destroy(&yyd_m_lock);
 }
 
 module_init(misc_init);

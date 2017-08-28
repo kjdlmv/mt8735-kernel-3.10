@@ -51,7 +51,7 @@ extern char backlight_status;
 struct input_dev *touchsensor_input_dev;
 
 
-static void commit_status(char *switch_name)
+void commit_status(char *switch_name)
 {
 	if(backlight_status == 1)
 	{
@@ -62,11 +62,14 @@ static void commit_status(char *switch_name)
 		touchsensor_dev.state=NO_TOUCH;
 		touchsensor_dev.name = TP_NAME;
 		
-		printk("touchsensor commit_status because of backlight on--------%s----\n",switch_name);
+		//printk("touchsensor commit_status because of backlight on--------%s----\n",switch_name);
 
 	}
 	else
-		printk("touchsensor don't commit_status because of backlight off--------%s----\n",switch_name);		
+	{
+		//printk("touchsensor don't commit_status because of backlight off--------%s----\n",switch_name);		
+	}
+	
 }
 
 static void touchsensor_eint76_func(void)
@@ -96,15 +99,7 @@ static void touchsensor_eint76_func(void)
 static void touchsensor_eint77_func(void)
 {
 	static unsigned long time = 0;
-	int gpio_read = 0;
-/*	
-	if((jiffies - time)/HZ > 2 || time == 0)
-	{
-		//commit_status("head");	//
-		commit_status("t_back_head");	//
-		time = jiffies;
-	}
-*/	
+	int gpio_read = 0;	
 	mdelay(15);
 	gpio_read = mt_get_gpio_in((GPIO77 | 0x80000000));
 	if(gpio_read == 0)
@@ -124,23 +119,13 @@ enum hrtimer_restart double_touch_commit(struct hrtimer *timer)
 		
 	}
 	timer_sta = 0;	
-	printk("daviekuo %s\n", __func__);
+	//printk("daviekuo %s\n", __func__);
 	return HRTIMER_NORESTART;
 }
 static void touchsensor_eint11_func(void)
 {
 	right_time = jiffies;
-
-/*	
-	if(right_time - left_time >= 0)
-	{
-		dis_time = right_time - left_time;
-	}else
-		{
-		dis_time = left_time - right_time;
-	}
-*/	
-
+	
 	commit_status("yyd6");	//volume +
 	//commit_status("volup");	//volume +
 	input_report_key(touchsensor_input_dev, KEY_VOLUMEUP,1);
@@ -162,10 +147,10 @@ static void touchsensor_eint11_func(void)
 		}
 		
 		//commit_status("yyd2");	
-		printk("daviekuo: right dance\n");
+		//printk("daviekuo: right dance\n");
 	}
 
-	printk("daviekuo: volup %s\n", __func__);
+	//printk("daviekuo: volup %s\n", __func__);
 	mt_eint_unmask(CUST_EINT_HALL_3_NUM);
 }
 
@@ -194,9 +179,9 @@ static void touchsensor_eint12_func(void)
 		}
 		
 		//commit_status("yyd2");		
-		printk("daviekuo: left dance\n");
+		//printk("daviekuo: left dance\n");
 	}	
-	printk("daviekuo: voldown %s\n", __func__);
+	//printk("daviekuo: voldown %s\n", __func__);
 	mt_eint_unmask(CUST_EINT_HALL_4_NUM);
 }
 
@@ -223,15 +208,17 @@ static void touchsensor_eint8_func(void)
 	mt_eint_unmask(CUST_EINT_CHR_STAT_NUM);
 */
 }
+
 static void touchsensor_eint10_func(void)
 {
 	static unsigned long time = 0;
 	if((jiffies - time)/HZ > 2 || time == 0)
 	{
-		commit_status("yyd4");	//
-		//commit_status("cntoen");	//
+		commit_status("t_head");	//yyd4
+		//commit_status("cntoen");	//yyd4
 		time = jiffies;
 	}
+
 	printk("daviekuo: cntoen %s\n", __func__);
  	mt_eint_unmask(CUST_EINT_COMBO_BGF_NUM);
 }
@@ -252,6 +239,7 @@ enum hrtimer_restart commit_delay_hrtimer_func(struct hrtimer *timer)
 //enum hrtimer_restart delay_hrtimer_func(struct hrtimer *timer)
 void touchsensor_func(void)
 {
+#if 1//!defined(CONFIG_YYD_Y20B_DRV_CODE)
 
 	mt_set_gpio_dir((GPIO11 | 0x80000000), GPIO_DIR_IN);
 	mt_set_gpio_mode((GPIO11 | 0x80000000), GPIO_MODE_00);
@@ -261,6 +249,9 @@ void touchsensor_func(void)
 	mt_eint_set_hw_debounce(CUST_EINT_HALL_3_NUM, 80);
 	mt_eint_registration(CUST_EINT_HALL_3_NUM, CUST_EINTF_TRIGGER_FALLING, touchsensor_eint11_func, 0); 
 	mt_eint_unmask(CUST_EINT_HALL_3_NUM);
+#endif
+
+#if 1//!defined(CONFIG_YYD_Y20B_DRV_CODE)
 
 	mt_set_gpio_dir((GPIO12 | 0x80000000), GPIO_DIR_IN);
 	mt_set_gpio_mode((GPIO12 | 0x80000000), GPIO_MODE_00);
@@ -269,6 +260,8 @@ void touchsensor_func(void)
 	mt_eint_set_hw_debounce(CUST_EINT_HALL_4_NUM, 80);
 	mt_eint_registration(CUST_EINT_HALL_4_NUM, CUST_EINTF_TRIGGER_FALLING, touchsensor_eint12_func, 0); 								
 	mt_eint_unmask(CUST_EINT_HALL_4_NUM);
+
+#endif
 /*
 	mt_set_gpio_dir((GPIO76 | 0x80000000), GPIO_DIR_IN);
 	mt_set_gpio_mode((GPIO76 | 0x80000000), GPIO_MODE_00);
@@ -279,18 +272,21 @@ void touchsensor_func(void)
 	mt_eint_unmask(CUST_EINT_OFN_NUM);
 
 */
+#if !defined(CONFIG_MTK_NEW_MOTOR_CODE)
 	mt_set_gpio_dir((GPIO77 | 0x80000000), GPIO_DIR_IN);
 	mt_set_gpio_mode((GPIO77 | 0x80000000), GPIO_MODE_00);
 	mt_set_gpio_pull_enable((GPIO77 | 0x80000000), FALSE);
-	
+#endif
 /*		
 	mt_set_gpio_pull_enable((GPIO77 | 0x80000000), GPIO_PULL_ENABLE);
     mt_set_gpio_pull_select((GPIO77 | 0x80000000), GPIO_PULL_UP);
 */
+#if !defined(CONFIG_MTK_NEW_MOTOR_CODE)
+
 	mt_eint_set_hw_debounce(CUST_EINT_NFC_NUM, 200);
 	mt_eint_registration(CUST_EINT_NFC_NUM, CUST_EINTF_TRIGGER_FALLING, touchsensor_eint77_func, 0);								
 	mt_eint_unmask(CUST_EINT_NFC_NUM);
-
+#endif
 	mt_set_gpio_dir((GPIO8 | 0x80000000), GPIO_DIR_IN);
 	mt_set_gpio_mode((GPIO8 | 0x80000000), GPIO_MODE_00);
 	mt_set_gpio_pull_enable((GPIO8 | 0x80000000), FALSE);
@@ -299,7 +295,7 @@ void touchsensor_func(void)
 	mt_eint_registration(CUST_EINT_COMBO_ALL_NUM, CUST_EINTF_TRIGGER_FALLING, touchsensor_eint8_func, 0);								
 	mt_eint_unmask(CUST_EINT_COMBO_ALL_NUM);
 
-	
+#if !defined(CONFIG_YYD_Y20B_DRV_CODE)	
 	mt_set_gpio_dir((GPIO10 | 0x80000000), GPIO_DIR_IN);
 	mt_set_gpio_mode((GPIO10 | 0x80000000), GPIO_MODE_00);
 	mt_set_gpio_pull_enable((GPIO10 | 0x80000000), FALSE);
@@ -307,7 +303,7 @@ void touchsensor_func(void)
 	mt_eint_set_hw_debounce(CUST_EINT_COMBO_BGF_NUM, 80);
 	mt_eint_registration(CUST_EINT_COMBO_BGF_NUM, CUST_EINTF_TRIGGER_FALLING, touchsensor_eint10_func, 0);								
 	mt_eint_unmask(CUST_EINT_COMBO_BGF_NUM);
-
+#endif
 	printk("delay_hrtimer_func	finish-------------\n");
 
 	return 0;
@@ -331,7 +327,8 @@ static int __init touchsensor_init(void)
 	
 	__set_bit(KEY_VOLUMEUP, touchsensor_input_dev->keybit);   
 	__set_bit(KEY_VOLUMEDOWN, touchsensor_input_dev->keybit);  
-
+	//__set_bit(KEY_PLAYPAUSE, touchsensor_input_dev->keybit);  
+	
 	touchsensor_input_dev->name ="TouchSensor";//
 	err = input_register_device(touchsensor_input_dev);				
 	if (err) {
