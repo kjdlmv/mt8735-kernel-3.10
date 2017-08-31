@@ -259,24 +259,14 @@ int receive_from_device(char * data, int count)
 
 EXPORT_SYMBOL(receive_from_device);
 
-void init_i2c_io(void)
-{
-	pfpga_dev=&fpga_dev;
-	   pfpga_dev->sda=(GPIO105|0x80000000);
-	  pfpga_dev->scl=(GPIO106|0x80000000);
-	  pfpga_dev->addr=FPGA_ADDR;
-	  
-	i2c_init_gpio(pfpga_dev);
-
-}
 static int i2c_driver_fpga_probe(struct i2c_client * client, const struct i2c_device_id* id)
 {
 #if 0  //later  open
 		if(firstflag)
 		{
 		  pfpga_dev=&fpga_dev;
-		   pfpga_dev->sda=(GPIO105|0x80000000);
-		  pfpga_dev->scl=(GPIO106|0x80000000);
+		   pfpga_dev->sda=(GPIO51|0x80000000);//(GPIO105|0x80000000);
+		  pfpga_dev->scl=(GPIO52|0x80000000);//(GPIO106|0x80000000);
 		  pfpga_dev->addr=FPGA_ADDR;
 		  
 		i2c_init_gpio(pfpga_dev);

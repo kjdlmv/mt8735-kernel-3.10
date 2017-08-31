@@ -1595,8 +1595,6 @@ static void mt_battery_update_EM(struct battery_data *bat_data)
 {	
 	
 	if(BMT_status.SOC <0) BMT_status.SOC=1;
-	else if(BMT_status.SOC>100)BMT_status.SOC=100;
-	
 	 BMT_status.UI_SOC= BMT_status.SOC;
 	 
 	bat_data->BAT_CAPACITY = BMT_status.UI_SOC;			

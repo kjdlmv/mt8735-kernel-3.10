@@ -41,7 +41,6 @@
 #include <misc.h>	
 
 
-
 /* ============================================================ // */
 /* define */
 /* ============================================================ // */
@@ -2660,13 +2659,13 @@ static kal_uint32 get_curent_battery_vol(int Channel)		//added by daviekuo for y
 }
 int avg_vol_test=0;
 int rtc_capatiy_test=0;
+
 kal_int32 battery_meter_to_ui_persent(int Channel,bool first_boot_flag)	
 {
 	int ret = 0, data[4], i, ret_value = 0, ret_temp = 0, times = 12,pbuf[12];
-	unsigned int avg_vol,ret_ui,max,min,sum=0,inc=0,pin_val,flush_time=3;
+	unsigned int avg_vol,ret_ui,max,min,sum=0,inc=0;
 	static unsigned int timer_counter;
 	static bool ui_temp;	
-	
 	   if( IMM_IsAdcInitReady() == 0 )
 	   {
 		   pr_notice("[DISO] AUXADC is not ready");
@@ -2697,16 +2696,14 @@ kal_int32 battery_meter_to_ui_persent(int Channel,bool first_boot_flag)
 	   sum=sum-min-max;
 	   avg_vol=sum/10;
 	 avg_vol_test=avg_vol;
-	 pin_val=mt_get_gpio_in(CHG_DET_PIN);
 
 #ifndef CONFIG_MISC_Y20A  //Y20B battery
-	if( 1 == pin_val)
+	if( 1 == mt_get_gpio_in(CHG_DET_PIN))
 	 {
-	 	if(avg_vol>3620)inc=20;
+	 	if(avg_vol>3620)inc=0;
 		else if(avg_vol>3592)inc=75;////12v		
-		else inc=145;//240;//
-
-		 flush_time=10;////2min		
+		else inc=240;//
+				
 		avg_vol -=inc;
 	  }
 	 if(avg_vol >=3620 )//12.1v 
@@ -2720,31 +2717,22 @@ kal_int32 battery_meter_to_ui_persent(int Channel,bool first_boot_flag)
 		ret_ui=85+(avg_vol-3604);
 	 }
 #else  // Y20A battery
-
-	 if(1 == pin_val ) 
-	  {		
-		   if(first_boot_flag == true)
-		  {
-			  if(avg_vol >3555) inc=175;
-			  else inc=135;
-		   }
-		  else{ 
-		  	
-                 		 if(avg_vol <3610)inc=135;
-		  }
-		  avg_vol -=inc;
-		  flush_time=12;////2min
+	 if(1 == mt_get_gpio_in(CHG_DET_PIN))
+	  {
+		 if(avg_vol <3624)inc=135;
+		 		 
+		 avg_vol -=inc;
 	   }
 
-	 if(avg_vol >=3620)//12.13v  //
+	 if(avg_vol >=3644)//12.13v  //
 	 {
 		ret_ui=100;
 		ui_temp=true;
 		BMT_status.bat_full = KAL_TRUE;
 	 }
-	  else if(avg_vol< 3620 && avg_vol >=3604)//12.0v--12.4v  //85%---100%
+	  else if(avg_vol< 3644 && avg_vol >=3604)//12.0v--12.4v  //85%---100%
 	 {
-		ret_ui=85+(avg_vol-3604);/*/((3649-3604)/15);//8*/
+		ret_ui=85+(avg_vol-3604)/((3644-3604)/15);//8
 	 }
 #endif	
 	 else if(avg_vol< 3604 && avg_vol >=3454)//11.5V--12.0v  //60%---85%
@@ -2765,7 +2753,7 @@ kal_int32 battery_meter_to_ui_persent(int Channel,bool first_boot_flag)
 	else 	
 	{
 	
-		if(BMT_status.SOC >1 && pin_val==0)return  --BMT_status.SOC;
+		if(BMT_status.SOC >1)return  --BMT_status.SOC;
 
 		if(BMT_status.charger_exist == KAL_TRUE)
 		 ret_ui=1;
@@ -2777,24 +2765,15 @@ kal_int32 battery_meter_to_ui_persent(int Channel,bool first_boot_flag)
 
 	 if(first_boot_flag == true)
 	  {
-		   unsigned int rtc_val;		   
+		   unsigned int rtc_val;
 		     rtc_val=get_rtc_spare_fg_value();
 		     rtc_capatiy_test=rtc_val;
-		     printk("daviekuo avg_vol=%d,ret_ui=%d,,BMT_status.=%d,first_boot_flag=%d, rtc_val=%d\n",avg_vol,ret_ui,BMT_status.UI_SOC,first_boot_flag, rtc_val);	
-		   if( 1 == pin_val)
-		  {
-			   if( rtc_val>1)  return rtc_val;
-			   else 	         return ret_ui;
-		  }
-		   else
-		   {
-			   if( rtc_val>11 && ret_ui <(rtc_val+11) &&ret_ui >(rtc_val-11))
-			     return rtc_val;	 
+		     printk("daviekuo avg_vol=%d,ret_ui=%d,,BMT_status.=%d,first_boot_flag=%d, rtc_val=%d\n",avg_vol,ret_ui,BMT_status.UI_SOC,first_boot_flag, rtc_val);
+		    if( rtc_val>11 && ret_ui <(rtc_val+11) &&ret_ui >(rtc_val-11))
+		     return rtc_val;	 
 
-			    return ret_ui;
-		   }
+		    return ret_ui;
 	  }
-	   
 	if(ui_temp == true && BMT_status.charger_exist == KAL_FALSE)
 	{
 #ifndef CONFIG_MISC_Y20A
@@ -2815,13 +2794,13 @@ kal_int32 battery_meter_to_ui_persent(int Channel,bool first_boot_flag)
 	else
 	{
 #ifndef CONFIG_MISC_Y20A	
-		 if (timer_counter >= flush_time) 
+		 if (timer_counter >= 0) 
 #else
-		if (timer_counter >= flush_time) 
+		if (timer_counter >= 2) 
 #endif
 		 {
 			  timer_counter = 0;
-		      if( ret_ui>(BMT_status.SOC+3)      &&  pin_val==1)        return BMT_status.SOC +=1;
+		      if( ret_ui>(BMT_status.SOC+3)      && BMT_status.charger_exist == KAL_TRUE )        return BMT_status.SOC +=1;
 		      else if(ret_ui <(BMT_status.SOC-3) && BMT_status.charger_exist == KAL_FALSE )return BMT_status.SOC -=1;	  
 		      else 					 	
 			  {

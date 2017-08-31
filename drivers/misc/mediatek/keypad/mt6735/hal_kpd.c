@@ -45,6 +45,8 @@ static u16 kpd_keymap_state[KPD_NUM_MEMS] = {
 
 static bool kpd_sb_enable = false;
 
+char t_keycode = 0;
+
 #ifdef CONFIG_MTK_SMARTBOOK_SUPPORT
 static void sb_kpd_release_keys(struct input_dev *dev)
 {
@@ -533,6 +535,10 @@ void kpd_pmic_pwrkey_hal(unsigned long pressed){
 			printk(KPD_SAY "(%s) HW keycode =%d using PMIC\n",
 			       pressed ? "pressed" : "released", KPD_PWRKEY_MAP);
 		}
+
+		printk("davie_kpd : hw_keycode = 116\n");
+		t_keycode = KPD_PWRKEY_MAP;
+
 		aee_powerkey_notify_press(pressed);
 		}
 #endif

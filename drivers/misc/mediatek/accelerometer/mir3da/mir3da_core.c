@@ -17,12 +17,14 @@
 #include "mir3da_core.h"
 #include "mir3da_cust.h"
 
+
+#define MIR3DA_REG_PAGE(REG)                (((REG)>>8)&0xFF)
 #define MIR3DA_REG_ADDR(REG)                ((REG)&0xFF)
 
 #define MIR3DA_OFFSET_THRESHOLD             20
 #define PEAK_LVL                            800                        
 #define STICK_LSB                           2000
-#define AIX_HISTORY_SIZE                    20
+#define AIX_HISTORY_SIZE                    5
 
 typedef struct reg_obj_s {
     
@@ -89,7 +91,6 @@ typedef enum _mems_type{
     MEMS_T4,
     MEMS_T9,
     MEMS_TV03,
-    MEMS_RTO3,
 } mems_type;
 
 typedef enum _package_type{
@@ -187,9 +188,7 @@ static int NSA_get_reg_data(MIR_HANDLE handle, char *buf);
 /**************************************************************** COMMON ***************************************************************************/
 #define MIR3DA_GSENSOR_SCHEME           MIR3DA_SUPPORT_CHIP_LIST
 
-#if YZ_CROSS_TALK_ENABLE 
-static short yzcross;
-#endif
+extern V_90;
 
 /* this level can be modified while runtime through system attribute */
 int                                 Log_level = DEBUG_ERR;//|DEBUG_ASSERT|DEBUG_MSG|DEBUG_FUNC|DEBUG_DATA;
@@ -208,9 +207,7 @@ struct gsensor_drv_s                mir3da_gsensor_drv;
             __FILE__, __LINE__, __func__, #expr);\
     }
 
-#if !MTK_ANDROID_M
 #define abs(x) ({ long __x = (x); (__x < 0) ? -__x : __x; })
-#endif 
 
 #if FILTER_AVERAGE_ENHANCE
 typedef struct FilterAverageContextTag{
@@ -384,27 +381,90 @@ static int filter_average_enhance(FilterAverageContext* fac, short sample)
 
 int mir3da_register_read(MIR_HANDLE handle, short addr, unsigned char *data)
 {
+    unsigned char      cur_page;
     int     res = 0;
 
+    /* check page */
+    if(MIR3DA_REG_PAGE(addr) > 0) {
+        res = mir3da_gsensor_drv.method->smi.read(handle, 0x0, &cur_page);
+        if(res != 0) {
+            return res;
+        }
+
+        if(cur_page != MIR3DA_REG_PAGE(addr)) {
+            res |= mir3da_gsensor_drv.method->smi.write(handle, 0x0, MIR3DA_REG_PAGE(addr));
+            if(res != 0) {
+                return res;
+            }
+        }
+    }
+
     res = mir3da_gsensor_drv.method->smi.read(handle, MIR3DA_REG_ADDR(addr), data);
-	
+
+    if(MIR3DA_REG_PAGE(addr) > 0) {
+        /* restore page NO. */
+        res |= mir3da_gsensor_drv.method->smi.write(handle, 0x0, cur_page);
+    }
+
     return res;
 }
 
 int mir3da_register_read_continuously(MIR_HANDLE handle, short addr, unsigned char count, unsigned char *data)
 {
+    unsigned char      cur_page;
     int     res = 0;
 
+    /* check page */
+    if(MIR3DA_REG_PAGE(addr) > 0) {
+        res = mir3da_gsensor_drv.method->smi.read(handle, 0x0, &cur_page);
+        if(res != 0) {
+            return res;
+        }
+
+        if(cur_page != MIR3DA_REG_PAGE(addr)) {
+            res |= mir3da_gsensor_drv.method->smi.write(handle, 0x0, MIR3DA_REG_PAGE(addr));
+            if(res != 0) {
+                return res;
+            }
+        }
+    }
+
     res = (count==mir3da_gsensor_drv.method->smi.read_block(handle, MIR3DA_REG_ADDR(addr), count, data)) ? 0 : 1;
+
+    if(MIR3DA_REG_PAGE(addr) > 0) {
+        /* restore page NO. */
+        res |= mir3da_gsensor_drv.method->smi.write(handle, 0x0, cur_page);
+    }
 
     return res;
 }
 
 int mir3da_register_write(MIR_HANDLE handle, short addr, unsigned char data)
 {
+    unsigned char      cur_page;
     int     res = 0;
-	
+
+    /* check page */
+    if(MIR3DA_REG_PAGE(addr) > 0) {
+        res = mir3da_gsensor_drv.method->smi.read(handle, 0x0, &cur_page);
+        if(res != 0) {
+            return res;
+        }
+
+        if(cur_page != MIR3DA_REG_PAGE(addr)) {
+            res |= mir3da_gsensor_drv.method->smi.write(handle, 0x0, MIR3DA_REG_PAGE(addr));
+            if(res != 0) {
+                return res;
+            }
+        }
+    }
+
     res = mir3da_gsensor_drv.method->smi.write(handle, MIR3DA_REG_ADDR(addr), data);
+
+    if(MIR3DA_REG_PAGE(addr) > 0) {
+        /* restore page NO. */
+        res |= mir3da_gsensor_drv.method->smi.write(handle, 0x0, cur_page);
+    }
 
     return res;
 }
@@ -447,12 +507,6 @@ static int mir3da_read_raw_data(MIR_HANDLE handle, short *x, short *y, short *z)
         MI_DATA("SensZoom take effect, Zoomed Z = %d", *z);
     }
 #endif
-
-#if YZ_CROSS_TALK_ENABLE 
-    if(yzcross)
-      *y=*y-(*z)*yzcross/100;
-#endif
-    
     return 0;
 }
 
@@ -490,7 +544,7 @@ int mir3da_read_data(MIR_HANDLE handle, short *x, short *y, short *z)
 {
     int    rst = 0;
 	static int resume_times=0;
-	unsigned char bw = 0;
+
 #if MIR3DA_SUPPORT_MULTI_LAYOUT
     short temp =0;
 #endif  
@@ -503,13 +557,7 @@ int mir3da_read_data(MIR_HANDLE handle, short *x, short *y, short *z)
 
     manual_load_cali_file(handle);
 #endif
-#if 1
-    mir3da_register_read(handle,	NSA_REG_POWERMODE_BW,&bw);
-    if((bw != 0x1e)&&(bw != 0x5e)){
-	mir3da_chip_resume(handle);
-    }
-#endif 
-	
+
     rst = mir3da_read_raw_data(handle, x, y, z);
     if (rst != 0){
         MI_ERR("mir3da_read_raw_data failed, rst = %d", rst);
@@ -534,7 +582,7 @@ int mir3da_read_data(MIR_HANDLE handle, short *x, short *y, short *z)
     bystk = isYStick();
     bzstk = isZStick();
 
-    if((gsensor_chip_info.mems==MEMS_TV03 ||gsensor_chip_info.mems==MEMS_RTO3)
+    if((gsensor_chip_info.mems==MEMS_TV03)
    	&&(gsensor_chip_info.reg_value != 0x4B)
    	&&(gsensor_chip_info.reg_value != 0x8C)
    	&&(gsensor_chip_info.reg_value != 0xCA))
@@ -596,10 +644,7 @@ int mir3da_read_data(MIR_HANDLE handle, short *x, short *y, short *z)
    		||(gsensor_chip_info.reg_value == 0xCA))
 	{
 		*z = 0;
-#if MIR3DA_STK_TEMP_SOLUTION   
 		bzstk = 1;
-#endif
-
 	}
     
     return 0;
@@ -828,7 +873,11 @@ static int NSA_calibrate(MIR_HANDLE handle, int coarse_step[3], int fine_step[3]
        }
        target[2] = (xyz[2] > 0) ? 1024 : (-1024);
     }
-
+#if V_90
+	target[0] = 0;
+	target[1] = 0;
+	target[2] = 1024;
+#endif
     MI_MSG("---Start Calibrate, trim target %d, %d, %d---\n", target[0], target[1], target[2]);
 
     // Stage1: Coarse tune once
@@ -1074,20 +1123,14 @@ static int NSA_NTO_auto_calibrate(MIR_HANDLE handle, int xyz[3])
 #endif /* !MIR3DA_AUTO_CALIBRATE */
     return result;
 }
-static char is_caliing = 0;
-
-char get_cali_caliing(void){
-	return is_caliing;
-}
 
 int mir3da_calibrate(MIR_HANDLE handle, int z_dir)
 {
-    int     res = 0;	
-
-    is_caliing = 1;
-#if MIR3DA_OFFSET_TEMP_SOLUTION
-    int     xyz[3]={0};
+    int     res = 0;
+    int     xyz[3]={0};	
 	
+#if MIR3DA_OFFSET_TEMP_SOLUTION
+
     if( is_cali )
         return -1;
     is_cali = 1;
@@ -1106,7 +1149,6 @@ int mir3da_calibrate(MIR_HANDLE handle, int z_dir)
     
     is_cali = 0;
 #endif /* !MIR3DA_OFFSET_TEMP_SOLUTION */
-    is_caliing = 0;
     return res;
 }
 
@@ -1174,10 +1216,7 @@ static int mir3da_auto_calibrate(MIR_HANDLE handle, int x, int y, int z)
     int     res = 0;
     int     xyz[3] = {0};
 
-    if((gsensor_chip_info.mems== MEMS_RTO3)
-	||(gsensor_chip_info.reg_value == 0x4B)
-	||(gsensor_chip_info.reg_value == 0x8C)
-	||(gsensor_chip_info.reg_value == 0xCA))
+    if((gsensor_chip_info.reg_value == 0x4B)||(gsensor_chip_info.reg_value == 0x8C)||(gsensor_chip_info.reg_value == 0xCA))
     	return -1;
 
     if( is_cali )
@@ -1357,8 +1396,8 @@ int mir3da_get_enable(MIR_HANDLE handle, char *enable)
 
 int mir3da_set_enable(MIR_HANDLE handle, char enable)
 {
-    int             res = 0;
-    unsigned char              reg_data = 0x40;
+    int             res = 0x40;
+    unsigned char              reg_data = 0;
 
     if(!enable) {
         reg_data = mir3da_gsensor_drv.obj[gsensor_mod].power.value;
@@ -1465,8 +1504,8 @@ int mir3da_module_detect(PLAT_HANDLE handle)
 }
 
 int mir3da_parse_chip_info(PLAT_HANDLE handle){
-    unsigned char i=0,tmp=0;   
-    unsigned char reg_value = -1,reg_value1 = -1;
+    unsigned char i=0;   
+    unsigned char reg_value = -1;
     char res=-1;
 
     if(-1 == gsensor_mod)
@@ -1478,10 +1517,6 @@ int mir3da_parse_chip_info(PLAT_HANDLE handle){
     }
 
   gsensor_chip_info.reg_value    = reg_value;               
-
-    if(0 == (reg_value>>6)){  
-        return -1;
-    }
 
     if(!(reg_value&0xc0)){
         gsensor_chip_info.asic = ASIC_2511;
@@ -1502,36 +1537,21 @@ int mir3da_parse_chip_info(PLAT_HANDLE handle){
         gsensor_chip_info.mems= MEMS_T9;
         gsensor_chip_info.package= PACKAGE_NONE;
         
-        gsensor_chip_info.package = (package_type)((reg_value&0xc0)>>6);
+            gsensor_chip_info.package = (reg_value&0xc0)>>6;
             
-        if((reg_value&0x38)>>3 == 0x01)
-            gsensor_chip_info.asic =ASIC_2512B;
+            if((reg_value&0x38)>>3 == 0x01)
+                gsensor_chip_info.asic =ASIC_2512B;
 
-        res = mir3da_register_read(handle, NSA_REG_MEMS_OPTION, &reg_value);
-        if(res != 0) {
-                return res;
-        }
+            res = mir3da_register_read(handle, NSA_REG_MEMS_OPTION, &reg_value);
+            if(res != 0) {
+                    return res;
+            }
 
-        res = mir3da_register_read(handle, NSA_REG_CHIP_INFO_SECOND, &reg_value1);
-        if(res != 0) {
-            return res;
-        }		
-#if YZ_CROSS_TALK_ENABLE 
-        if(reg_value1&0x10)
-         yzcross = -(reg_value1&0x0f);
-        else
-         yzcross = (reg_value1&0x0f); 
-#endif 
-        tmp= ((reg_value&0x01)<<2) |((reg_value1&0xc0)>>6); 
-
-        if(tmp == 0x00){
-           if(reg_value&0x80)
-               gsensor_chip_info.mems =MEMS_TV03;
-           else
-               gsensor_chip_info.mems =MEMS_T9;
-        }else if(tmp == 0x01){
-               gsensor_chip_info.mems =MEMS_RTO3;
-        }				
+			if(reg_value&0x80)
+				 gsensor_chip_info.mems =MEMS_TV03;
+			else
+				 gsensor_chip_info.mems =MEMS_T9;
+				
 	}
 
     return 0;
@@ -1623,11 +1643,11 @@ int mir3da_chip_resume(MIR_HANDLE handle)
     if(gsensor_type<0){
         gsensor_type=mir3da_parse_chip_info(handle);
       
-		if(gsensor_type<0){
-			MI_ERR("Can't parse Mir3da gsensor chipinfo!!");	
-			return -1; 
-		}
-	}
+        if(gsensor_type<0){
+            MI_ERR("Can't parse Mir3da gsensor chipinfo!!");    
+            return 0;
+        }
+    }
 
     if(gsensor_chip_info.asic==ASIC_2512B){
         

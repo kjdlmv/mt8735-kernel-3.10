@@ -364,8 +364,6 @@ extern bool gsensor_data_switch;
 extern int gsensor_buf[3];
 extern int yyd_lock_system;
 extern struct wake_lock yyd_m_lock;
-extern int gsensor_reset_by_app(void);
-bool close_correct_flag=true;
 
 
 
@@ -503,18 +501,6 @@ static ssize_t hdmi_write(struct file *file, const char __user *buf, size_t coun
 		wake_lock(& yyd_m_lock);
 	 	}
 	 }
-	else  if(pbuf[1]=='C') 
-	{
-		return gsensor_reset_by_app();
-	}
-	else  if(pbuf[1]=='D') 
-	{
-		close_correct_flag=true;
-	}
-	else  if(pbuf[1]=='E') 
-	{
-		close_correct_flag=false;
-	}
 
  }
    return count;

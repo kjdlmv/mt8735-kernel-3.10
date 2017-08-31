@@ -443,8 +443,6 @@ static int mir3da_setPowerMode(struct i2c_client *client, bool enable)
 extern int Seting_Image_Rotation(int val);
 extern int Setting_Image_Correct(uint08 m_throw,uint08 l_throw,uint08 m_DMD,uint08 l_DMD,uint08 l_PP,uint08 m_PP);
 extern bool hdmi_open_flag;
-extern bool close_correct_flag;
-
 DECLARE_WAIT_QUEUE_HEAD(gsensor_thread_wq);
 static bool gsensor_correct_flag=0;
 static int correct_val=0;
@@ -494,8 +492,7 @@ static int mir3da_readSensorData(struct i2c_client *client, char *buf)
         msleep(20);
     }
 
-    res = mir3da_read_data(client, &(obj->data[MIR3DA_AXIS_X]),&(obj->data[MIR3DA_AXIS_Y]),&(obj->data[MIR3DA_AXIS_Z]));
-    if((get_cali_caliing() == 0)&&((res !=0) ))		
+    if(res = mir3da_read_data(client, &(obj->data[MIR3DA_AXIS_X]),&(obj->data[MIR3DA_AXIS_Y]),&(obj->data[MIR3DA_AXIS_Z]))) 
     {        
         MI_ERR("I2C error: ret value=%d", res);
 	gsensor_reset_by_app();///add lifei
@@ -537,8 +534,6 @@ static int mir3da_readSensorData(struct i2c_client *client, char *buf)
 
         sprintf(buf, "%04x %04x %04x", acc[MIR3DA_AXIS_X], acc[MIR3DA_AXIS_Y], acc[MIR3DA_AXIS_Z]);
 #if 1
-if(close_correct_flag)
-{
 	if(hdmi_open_flag ==true)  //close guang ji
 	{
 	  j=0;
@@ -609,7 +604,6 @@ if(close_correct_flag)
 				}
 			
          	}
-}		 
 #endif	
 
         MI_DATA( "mir3da data mg: x= %d, y=%d, z=%d\n",  acc[MIR3DA_AXIS_X],acc[MIR3DA_AXIS_Y],acc[MIR3DA_AXIS_Z]); 
@@ -669,13 +663,12 @@ static long mir3da_misc_ioctl( struct file *file,unsigned int cmd, unsigned long
  
     case GSENSOR_IOCTL_INIT:
         MI_MSG("IOCTRL --- GSENSOR_IOCTL_INIT\n");
-	
+
 	 err = mir3da_chip_resume(client);
 	 if(err) {
 		MI_ERR("chip resume fail!!\n");
 		return;
-	 } 
-	 printk("reset gsensor\n");
+	 }        
         break;
 
     case GSENSOR_IOCTL_READ_CHIPINFO:
@@ -1039,7 +1032,7 @@ static struct driver_attribute *mir3da_attributes[] = {
 };
 /*----------------------------------------------------------------------------*/
 //------------------------------------------------------------------//
-
+extern bool hdmi_open_flag;
 int gsensor_buf[3];
 static  int correct_thread_kthread(void *x)
 {

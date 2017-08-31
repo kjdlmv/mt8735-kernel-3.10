@@ -72,7 +72,7 @@ obj-y	+=  ft5206/
 endif
 
 ifeq ($(CONFIG_MTK_ICN85XX),y)
-obj-y	+=  icn85xx/
+obj-y  +=  icn85xx/
 endif
 
 ifeq ($(CONFIG_MTK_FT5336),y)

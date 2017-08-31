@@ -27,8 +27,8 @@ static struct i2c_client * breathleds_i2c_client = NULL;
 
 static int led_ear_sta = 1;
 static int led_chest_sta = 1;
-static char led_ear_color =0;// 'B';
-static char led_chest_color =0;// 'B';
+static char led_ear_color = 'O';
+static char led_chest_color = 'O';
 static char led_ear_freq = 'L';
 static char led_chest_freq = 'L';
 
@@ -405,40 +405,6 @@ static void b_resume( struct early_suspend *h )
 /***************************breathleds***************************
 							added by daviekuo
 /****************************************************************/
-void set_led_const_ctl(int led,int color)
-{
-	switch(color)
-		{
-			case 'R':
-			case 'r':						//Extre speed
-				AW9106_SoftReset();								
-				AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能		
-				AW9106_i2c_write_reg(0x04,~0x02);   //OUT4-OUT5自主呼吸BLINK模式使能 	out5/out2 R  out4/out1 G   out3/out0 B	
-				AW9106_i2c_write_reg(0x05,~0x04);   //OUT0-OUT3自主呼吸BLINK模式使能							
-				AW9106_i2c_write_reg(0x02,0x00);
-				AW9106_i2c_write_reg(0x03,0x00);
-				break;
-			case 'G':
-			case 'g':						//Extre speed
-				 AW9106_SoftReset();								
-				 AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能
-				 AW9106_i2c_write_reg(0x04,~0x01);	//OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B	
-				 AW9106_i2c_write_reg(0x05,~0x02);	//OUT0-OUT3自主呼吸BLINK模式使能				
-				AW9106_i2c_write_reg(0x02,0x00);
-				AW9106_i2c_write_reg(0x03,0x00);
-				break;
-			case 'B':
-			case 'b':
-	
-			        AW9106_SoftReset(); 							
-			        AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能		
-			         AW9106_i2c_write_reg(0x04,~0x00);	//OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B	
-				AW9106_i2c_write_reg(0x05,~0x09);	//OUT0-OUT3自主呼吸BLINK模式使能	
-				AW9106_i2c_write_reg(0x02,0x00);
-				AW9106_i2c_write_reg(0x03,0x00);
-				break;
-		}
-}
 static ssize_t store_frequency(struct device *dev, struct device_attribute *attr,
 				  const char *buf, size_t size)
 {
@@ -465,30 +431,24 @@ static ssize_t store_frequency(struct device *dev, struct device_attribute *attr
 		}	
 		switch(freq)
 		{
-
 			case 'L':
 			case 'l':						//Low speed
-				AW9106_i2c_write_reg(0x15,0x12);   //淡进淡出时间设置	  (2048 + 512)	  +  (0 + 512)
-				AW9106_i2c_write_reg(0x16,0x20);   //全亮全暗时间设置 
+				AW9106_i2c_write_reg(0x15,0x12);   //淡进淡出时间设置	  (256 + 512)	  +  (256 + 512)
+				AW9106_i2c_write_reg(0x16,0x09);   //全亮全暗时间设置 
 				break;		
 
 			case 'M':
 			case 'm':						//Middle speed
-				AW9106_i2c_write_reg(0x15,0x12);   //淡进淡出时间设置	  (256 + 512)	  +  (256 + 512)
-				AW9106_i2c_write_reg(0x16,0x09);   //全亮全暗时间设置 
+				AW9106_i2c_write_reg(0x15,0x12);   //淡进淡出时间设置	  (2048 + 512)	  +  (0 + 512)
+				AW9106_i2c_write_reg(0x16,0x20);   //全亮全暗时间设置 
 				break;		
-				
+
 			case 'H':
 			case 'h':						//High speed
 				AW9106_i2c_write_reg(0x15,0x09);   //淡进淡出时间设置	  (256 + 256)	  +  (0 + 256)
 				AW9106_i2c_write_reg(0x16,0x08);   //全亮全暗时间设置 
 				break;
-
-			case 'C':
-			case 'c':
-				set_led_const_ctl(1,led_chest_color);
-				set_led_const_ctl(1,led_ear_color);
-			break;
+				
 			case 'E':
 			case 'e':						//Extre speed
 				break;
@@ -498,35 +458,14 @@ static ssize_t store_frequency(struct device *dev, struct device_attribute *attr
 	}
 	else
 		return -1;
-	return sprintf(buf, "E%cC%c\n", led_ear_freq, led_chest_freq);
+	
 	return 0;
 
 }
 
 static ssize_t show_frequency(struct device *dev, struct device_attribute *attr, char *buf)
 {
-		char data[20] = {0};
-		data[0] = 'E';
-		data[1] = led_ear_freq;
-		data[2] = 'C';
-		data[3] = led_chest_freq;
-	
-	/*	
-		if(led_ear_color == 0)
-			data[1] = '0';
-		else
-			data[1] = '1';
-		if(led_chest_sta == 0)
-			data[3] = '0';
-		else
-			data[3] = '1';
-	*/
-		data[4] = '\0';
-	
-		return sprintf(buf, "%s\n", data);
-	
-		return 0;
-
+	return 0;
 }
 
 static DEVICE_ATTR(frequency, 0664, show_frequency, store_frequency);
@@ -696,32 +635,32 @@ static ssize_t store_color(struct device *dev, struct device_attribute *attr,
 	}
 	else
 		return -1;
-	return sprintf(buf, "E%cC%c\n", led_ear_color, led_chest_color);
+	
 	return 0;
 }
 
 static ssize_t show_color(struct device *dev, struct device_attribute *attr, char *buf)
 {
-		char data[20] = {0};
-		data[0] = 'E';
-		data[1] = led_ear_color;
-		data[2] = 'C';
-		data[3] = led_chest_color;
-	
-	/*	
-		if(led_ear_color == 0)
-			data[1] = '0';
-		else
-			data[1] = '1';
-		if(led_chest_sta == 0)
-			data[3] = '0';
-		else
-			data[3] = '1';
-	*/
-		data[4] = '\0';
-	
-		return sprintf(buf, "%s\n", data);
+	char data[20] = {0};
+	data[0] = 'E';
+	data[1] = led_ear_color;
+	data[2] = 'C';
+	data[3] = led_chest_color;
 
+/*	
+	if(led_ear_color == 0)
+		data[1] = '0';
+	else
+		data[1] = '1';
+	if(led_chest_sta == 0)
+		data[3] = '0';
+	else
+		data[3] = '1';
+*/
+	data[4] = '\0';
+	//copy_to_user(to, data, 4);
+	strcpy(buf, data);
+	return 0;
 }
 
 static DEVICE_ATTR(color, 0664, show_color, store_color);
@@ -752,15 +691,14 @@ static ssize_t store_onoff(struct device *dev, struct device_attribute *attr,
 					led_ear_sta = 1;
 				*/
 					//AW9106_i2c_write_reg(0x014,0x3f);
-					//AW9106_i2c_write_reg(0x012,0x0);	  
-					//AW9106_i2c_write_reg(0x013,0x0);							
-					//AW9106_i2c_write_reg(0x11,0x80);
+					AW9106_i2c_write_reg(0x012,0x0);	  
+					AW9106_i2c_write_reg(0x013,0x0);							
+					AW9106_i2c_write_reg(0x11,0x80);
 					led_ear_sta = 1;
 					break;
 				case '0':
-					AW9106_SoftReset();
-					//AW9106_i2c_write_reg(0x012,0x3);	  
-					//AW9106_i2c_write_reg(0x013,0xf);		
+					AW9106_i2c_write_reg(0x012,0x3);	  
+					AW9106_i2c_write_reg(0x013,0xf);		
 	/*
 					AW9106_i2c_write_reg(0x02,0x3);    
 					AW9106_i2c_write_reg(0x03,0xf);    
@@ -787,17 +725,17 @@ static ssize_t store_onoff(struct device *dev, struct device_attribute *attr,
 //					AW9106_i2c_write_reg(0x05,0x09);   //OUT0-OUT3自主呼吸BLINK模式使能					
 					//AW9106_i2c_write_reg(0x02,0x3);    
 					//AW9106_i2c_write_reg(0x03,0xf); 
-					//AW9106_i2c_write_reg(0x012,0x0);	  
-					//AW9106_i2c_write_reg(0x013,0x0);		
+					AW9106_i2c_write_reg(0x012,0x0);	  
+					AW9106_i2c_write_reg(0x013,0x0);		
 
 					//AW9106_i2c_write_reg(0x014,0x3f);	
-					//AW9106_i2c_write_reg(0x11,0x80);	 
+					AW9106_i2c_write_reg(0x11,0x80);	 
 					led_chest_sta = 1;
 					break;
 				case '0':
-					AW9106_SoftReset();
-					//AW9106_i2c_write_reg(0x012,0x3);	  
-					//AW9106_i2c_write_reg(0x013,0xf);		
+
+					AW9106_i2c_write_reg(0x012,0x3);	  
+					AW9106_i2c_write_reg(0x013,0xf);		
    					//AW9106_i2c_write_reg(0x02,0x3);    
 					//AW9106_i2c_write_reg(0x03,0xf); 
 					//AW9106_i2c_write_reg(0x014,0x0);		
@@ -818,7 +756,7 @@ static ssize_t store_onoff(struct device *dev, struct device_attribute *attr,
 		}
 		else
 			return -1;
-		return sprintf(buf, "E%dC%d\n", led_ear_sta, led_chest_sta);
+		
 		return 0;
 
 }
@@ -841,8 +779,9 @@ static ssize_t show_onoff(struct device *dev, struct device_attribute *attr, cha
 		data[3] = '1';
 	data[4] = '\0';
 	//copy_to_user(to, data, 4);
-	return sprintf(buf, "%s\n", data);
+	strcpy(buf, data);
 
+	return 0;
 }
 
 static DEVICE_ATTR(onoff, 0664, show_onoff, store_onoff);
@@ -1035,9 +974,9 @@ static int breathleds_i2c_probe(struct i2c_client *client, const struct i2c_devi
 	   breathleds_i2c_client = client;
 	   printk("[%x] breathleds_i2c_probe\n", client->addr);
 	//	 breathleds_i2c_client->addr = breathleds_i2c_client->addr >> 1;
-	    
-	  // AW9106_init();
-	   //AW9106_init_pattern();	
+	   
+	   AW9106_init();
+	   AW9106_init_pattern();	
 
 	  int err,ret;
 		ret = alloc_chrdev_region(&b_dev, 0, 1, DEV_NAME);
@@ -1180,7 +1119,7 @@ static int __init breathleds_init(void)
 	printk("daviekuo %s 1111111\n", __func__);
 	#ifdef CONFIG_HAS_EARLYSUSPEND
 	#ifdef CONFIG_EARLYSUSPEND
-	//register_early_suspend(&breathleds_early_suspend_handler);
+	register_early_suspend(&breathleds_early_suspend_handler);
 	#endif
 	#endif
 /*	

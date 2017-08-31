@@ -40,6 +40,8 @@
 #include <misc.h>
 
 char backlight_status = 1;
+extern char t_keycode;
+
 
 static DEFINE_MUTEX(leds_mutex);
 static DEFINE_MUTEX(leds_pmic_mutex);
@@ -780,12 +782,19 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 			if(level == 0)
 			{
 				backlight_status = 0;
+				t_keycode = 0;
 			}
 			else
 			{
 				backlight_status = 1;
+				extern void commit_status(char *switch_name);
+				
+				if(t_keycode == 116 )
+				{
+					commit_status("t_head");
+					t_keycode = 0; 
+				}
 			}
-			
 			if(MT65XX_LED_MODE_CUST_BLS_PWM == led_data->cust.mode)
 			{	
 				if(!(get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT && mt_get_gpio_in(CHG_DET_PIN) == 0)) //daviekuo added

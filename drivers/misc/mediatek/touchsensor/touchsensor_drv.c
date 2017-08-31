@@ -295,7 +295,7 @@ void touchsensor_func(void)
 	mt_eint_registration(CUST_EINT_COMBO_ALL_NUM, CUST_EINTF_TRIGGER_FALLING, touchsensor_eint8_func, 0);								
 	mt_eint_unmask(CUST_EINT_COMBO_ALL_NUM);
 
-#if !defined(CONFIG_YYD_Y20B_DRV_CODE)	
+#if 1//!defined(CONFIG_YYD_Y20B_DRV_CODE)
 	mt_set_gpio_dir((GPIO10 | 0x80000000), GPIO_DIR_IN);
 	mt_set_gpio_mode((GPIO10 | 0x80000000), GPIO_MODE_00);
 	mt_set_gpio_pull_enable((GPIO10 | 0x80000000), FALSE);
