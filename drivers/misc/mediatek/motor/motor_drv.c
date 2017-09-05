@@ -361,18 +361,13 @@ static void robot_stop_dance(void)
 	POWER_H_CLOSE();
 	POWER_V_CLOSE();
 }
-extern int cx20810_set_mode(int mode, int index);
-extern unsigned char ADC_i2c_read_reg(unsigned char regaddr,int idex) ;
-
 static ssize_t check_state_show (struct device *dev, struct device_attribute *attr,char *buf)
 {
 	int len=0;
 	
-	cx20810_set_mode(0,0);
-	cx20810_set_mode(0,1);
 	len += sprintf(buf + len, "%c,", user_cmd);
-	len += sprintf(buf + len, "%x,", ADC_i2c_read_reg(0x10,0));
-	len += sprintf(buf + len, "%x,", ADC_i2c_read_reg(0x10,1));
+	len += sprintf(buf + len, "%d,", user_param);
+	len += sprintf(buf + len, "%d,", limitswitch);
 	return len;
 }
 
@@ -847,12 +842,6 @@ printk("motor  init  finish--------\n");
 	POWER_EN();
 	MOTOR_FORWARD_P(fast_temp,slow_temp);
 */
-	mt_set_gpio_dir(GPIO102_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(GPIO102_PIN, 1);
-	mt_set_gpio_dir(GPIO119 | 0x80000000, GPIO_DIR_OUT);
-	mt_set_gpio_out(GPIO119 | 0x80000000, 0);
-	mt_set_gpio_dir(GPIO101_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(GPIO101_PIN, 1);
 	return 0;
 
 EXIT:

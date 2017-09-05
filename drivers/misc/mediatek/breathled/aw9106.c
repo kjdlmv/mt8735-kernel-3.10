@@ -16,7 +16,6 @@
 
 #include <linux/i2c.h>
 #include <mach/mt_gpio.h>
-#include <linux/earlysuspend.h>
 
 #define BREATHLEDS_I2C_BUSNUM 3
 
@@ -27,16 +26,11 @@ static struct i2c_client * breathleds_i2c_client = NULL;
 
 static int led_ear_sta = 1;
 static int led_chest_sta = 1;
-static char led_ear_color = 'O';
-static char led_chest_color = 'O';
-static char led_ear_freq = 'L';
-static char led_chest_freq = 'L';
 
 
 static const struct i2c_device_id breathleds_i2c_id[] = {{"breathled_ear",0},{"breathled_chest",0},{}};   
 static struct i2c_board_info __initdata breathleds_i2c_hw1={ I2C_BOARD_INFO("breathled_chest", (0xb2>>1))};
 static struct i2c_board_info __initdata breathleds_i2c_hw2={ I2C_BOARD_INFO("breathled_ear", (0xb6>>1))};
-
 
 struct i2c_driver breathleds_i2c_driver = {                       
     .probe = breathleds_i2c_probe,                                   
@@ -93,7 +87,7 @@ static BOOL AW9016_i2c_write_reg_org(unsigned char reg,unsigned char data)
 
 	ret = i2c_master_send(breathleds_i2c_client, wrbuf, 2);
 	if (ret != 2) {
-		printk(&breathleds_i2c_client->dev,
+		dev_err(&breathleds_i2c_client->dev,
 		"%s: i2c_master_recv() failed, ret=%d\n",
 		__func__, ret);
 		ack = 1;
@@ -180,7 +174,7 @@ void AW9106_Hw_reset(void)
 	mt_set_gpio_out(AW9106_RESET_PIN | 0x80000000,0);
 	AW9106_delay_1us(1000); //复位信号为低电平的持续时间必须至少20us才能正常复位  
 	mt_set_gpio_out(AW9106_RESET_PIN | 0x80000000,1);
-	AW9106_delay_1us(300); 
+	AW9106_delay_1us(30); 
 }
 
 void AW9106_SoftReset()
@@ -197,7 +191,6 @@ void AW9106_POWER_ON(void)
 	AW9106_Hw_reset();
 	
 }
-
 
 /*
 void AW9106_OnOff(BOOL OnOff)  //AW9106硬件使能。低电平复位，高电平正常工作。
@@ -265,7 +258,8 @@ void AW9106_init(void)    //AW9106初始化，请客户在开机初始化时调用
 	//以下为客户初始化，由客户更改
 	//AW9106_i2c_initial();
 	//AW9106_Hw_reset();
-	AW9106_SoftReset();	//GPTI_GetHandle(&AW9106_timer_ID);  ????daviekuo
+	AW9106_SoftReset();
+	//GPTI_GetHandle(&AW9106_timer_ID);  ????daviekuo
 	AW9106_i2c_write_reg(0x12,0x00);   //P0口配置为呼吸灯模式
 	AW9106_i2c_write_reg(0x13,0x00);   //P1口配置为呼吸灯模式
 	
@@ -285,35 +279,33 @@ void AW9106_init(void)    //AW9106初始化，请客户在开机初始化时调用
 void AW9106_init_pattern(void)
 {
  //AW9106基本的效果实现。6路自主呼吸
-		printk(KERN_ERR"-------------------------AW9106_init_pattern  Entry ------------------------- \r\n");
-	  AW9106_SoftReset();
-	 if(1)//(strcmp(breathleds_i2c_client->name, "breathled_chest")==0)
+	printk(KERN_ERR"-------------------------AW9106_init_pattern  Entry ------------------------- \r\n");
+
+	 if(strcmp(breathleds_i2c_client->name, "breathled_chest")==0)
 	 {
 	 //printk("daviekuo zzzzzzzzzz  0x%x\n", breathleds_i2c_client->addr);
-
-	  AW9106_i2c_write_reg(0x12,0x00);	//OUT4~5配置为呼吸灯模式
-	  AW9106_i2c_write_reg(0x13,0x00);	//OUT0~3配置为呼吸灯模式
-	  AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能 	 
+	  AW9106_SoftReset();
+	  AW9106_i2c_write_reg(0x12,0x01);	 //OUT4~5配置为呼吸灯模式
+	  AW9106_i2c_write_reg(0x13,0x02);	 //OUT0~3配置为呼吸灯模式
+ /*   
+	  AW9106_i2c_write_reg(0x04,0x03);	 //OUT4-OUT5自主呼吸BLINK模式使能		 out all
+	  AW9106_i2c_write_reg(0x05,0x0f);	 //OUT0-OUT3自主呼吸BLINK模式使能
+ */
  
 	  AW9106_i2c_write_reg(0x04,0x00);	 //OUT4-OUT5自主呼吸BLINK模式使能		 out5/out2 R  out4/out1 G	out3/out0 B  
 	  AW9106_i2c_write_reg(0x05,0x09);	 //OUT0-OUT3自主呼吸BLINK模式使能
  /*   
-	  AW9106_i2c_write_reg(0x15,0x1b);	  //淡进淡出时间设置	 (512+1024)  +	(1024+512)
+	  AW9106_i2c_write_reg(0x15,0x1b);	  //淡进淡出时间设置	 (512+1024)  +	(512+1024)
 	  AW9106_i2c_write_reg(0x16,0x12);	  //全亮全暗时间设置 
-
-	  AW9106_i2c_write_reg(0x15,0x02);	 //淡进淡出时间设置 	(2048 + 512)	+  (256 + 0)
-	  AW9106_i2c_write_reg(0x16,0x20);	 //全亮全暗时间设置 
-
-	  AW9106_i2c_write_reg(0x15,0x1b);	 //淡进淡出时间设置 	(512+1024)	+  (512+1024)
-	  AW9106_i2c_write_reg(0x16,0x12);	 //全亮全暗时间设置 
- */ 	  
-	  AW9106_i2c_write_reg(0x15,0x12);    //淡进淡出时间设置	  (256+512)  +	 (256+512)
-	  AW9106_i2c_write_reg(0x16,0x20);    //全亮全暗时间设置 	  
-	 
-//	  AW9106_i2c_write_reg(0x11,0x82);	 //开始自主呼吸，并设置最大电流
-	  AW9106_i2c_write_reg(0x11,0x00);   //开始自主呼吸，并设置最大电流		//由android laucher来设置初始状态
-	  led_ear_freq = 'M';
-	  led_chest_freq = 'M';
+ */ 	 
+ 
+	   AW9106_i2c_write_reg(0x15,0x12);    //淡进淡出时间设置	  (256+512)  +	 (256+512)
+	   AW9106_i2c_write_reg(0x16,0x09);    //全亮全暗时间设置 
+ 
+	  
+	  AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能 
+ 
+	  AW9106_i2c_write_reg(0x11,0x82);	 //开始自主呼吸，并设置最大电流
 	 }
 	 else
 	 {
@@ -330,8 +322,11 @@ void AW9106_init_pattern(void)
 	/*	 
 		 AW9106_i2c_write_reg(0x15,0x1b); 	 //淡进淡出时间设置		(512+1024)  +  (512+1024)
 		 AW9106_i2c_write_reg(0x16,0x12);	 //全亮全暗时间设置 
-		 AW9106_i2c_write_reg(0x15,0x12);	  //淡进淡出时间设置	 (256+512)  +	(256+512)
-		 AW9106_i2c_write_reg(0x16,0x09);	  //全亮全暗时间设置 
+		  	
+
+
+		  AW9106_i2c_write_reg(0x15,0x12);	  //淡进淡出时间设置	 (256+512)  +	(256+512)
+		  AW9106_i2c_write_reg(0x16,0x09);	  //全亮全暗时间设置 
 	*/
 
 		 AW9106_i2c_write_reg(0x02,0x1);	
@@ -339,8 +334,7 @@ void AW9106_init_pattern(void)
 
 		 //AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能 
 
-//		 AW9106_i2c_write_reg(0x11,0x82);	//开始自主呼吸，并设置最大电流
-		 AW9106_i2c_write_reg(0x11,0x02);	//开始自主呼吸，并设置最大电流	   //由android laucher来设置初始状态
+		 AW9106_i2c_write_reg(0x11,0x82);	//开始自主呼吸，并设置最大电流
 	 }
 	 //如果不采用自主呼吸模式，则采用下列方式调光
 	//AW9106_i2c_write_reg(0x14,0x00);//关闭自主呼吸使能
@@ -354,53 +348,6 @@ void AW9106_init_pattern(void)
 	 //AW9106_test();  //读取AW9106内部寄存器的值，看与写进去的值是否一致，由此判断I2C接口是否通畅
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#ifdef CONFIG_EARLYSUSPEND
-
-static void b_suspend( struct early_suspend *h )
-{
-	breathleds_i2c_client->addr = 0xb6>>1;
-
-	AW9106_i2c_write_reg(0x012,0x3);	  
-	AW9106_i2c_write_reg(0x013,0xf);
-	led_ear_sta = 0;
-	
-	breathleds_i2c_client->addr = 0xb2>>1;
-
-	AW9106_i2c_write_reg(0x012,0x3);	  
-	AW9106_i2c_write_reg(0x013,0xf);
-
-	led_chest_sta = 0;
-
-}
- 
-static void b_resume( struct early_suspend *h )
-{
-	breathleds_i2c_client->addr = 0xb6>>1;
-
-	AW9106_i2c_write_reg(0x012,0x0);	  
-	AW9106_i2c_write_reg(0x013,0x0);							
-	AW9106_i2c_write_reg(0x11,0x80);
-
-	led_ear_sta = 1;
-
-	breathleds_i2c_client->addr = 0xb2>>1;
-
-	AW9106_i2c_write_reg(0x012,0x0);	  
-	AW9106_i2c_write_reg(0x013,0x0);							
-	AW9106_i2c_write_reg(0x11,0x80);
-
-	led_chest_sta = 1;	
-}
- 
- static struct early_suspend breathleds_early_suspend_handler = {
-	 .level = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1,
-	 .suspend = b_suspend,
-	 .resume = b_resume,
-};
-
-#endif
-#endif
 
 /***************************breathleds***************************
 							added by daviekuo
@@ -408,59 +355,8 @@ static void b_resume( struct early_suspend *h )
 static ssize_t store_frequency(struct device *dev, struct device_attribute *attr,
 				  const char *buf, size_t size)
 {
-	char *pvalue = NULL;
-	unsigned int reg_value = 0;
-	unsigned int reg_address = 0;
-	unsigned int err = 0;
-	printk("daviekuo, store_frequenct in data %s\n",buf);
-	//breathleds_i2c_client->addr = 0xb6>>1;
-	if (buf != NULL && size != 0)
-	{		
-		char led = *(buf+0);
-		char freq = *(buf+1);
-		
-		if(led == 'C' || led == 'c')
-		{
-			breathleds_i2c_client->addr = 0xb2>>1;
-			led_chest_freq = freq;
-		}	
-		else if(led == 'E' || led == 'e')
-		{
-			breathleds_i2c_client->addr = 0xb6>>1;
-			led_ear_freq = freq;
-		}	
-		switch(freq)
-		{
-			case 'L':
-			case 'l':						//Low speed
-				AW9106_i2c_write_reg(0x15,0x12);   //淡进淡出时间设置	  (256 + 512)	  +  (256 + 512)
-				AW9106_i2c_write_reg(0x16,0x09);   //全亮全暗时间设置 
-				break;		
-
-			case 'M':
-			case 'm':						//Middle speed
-				AW9106_i2c_write_reg(0x15,0x12);   //淡进淡出时间设置	  (2048 + 512)	  +  (0 + 512)
-				AW9106_i2c_write_reg(0x16,0x20);   //全亮全暗时间设置 
-				break;		
-
-			case 'H':
-			case 'h':						//High speed
-				AW9106_i2c_write_reg(0x15,0x09);   //淡进淡出时间设置	  (256 + 256)	  +  (0 + 256)
-				AW9106_i2c_write_reg(0x16,0x08);   //全亮全暗时间设置 
-				break;
-				
-			case 'E':
-			case 'e':						//Extre speed
-				break;
-			default:
-				return -2;					
-		}
-	}
-	else
-		return -1;
 	
 	return 0;
-
 }
 
 static ssize_t show_frequency(struct device *dev, struct device_attribute *attr, char *buf)
@@ -477,189 +373,43 @@ static ssize_t store_color(struct device *dev, struct device_attribute *attr,
 	unsigned int reg_value = 0;
 	unsigned int reg_address = 0;
 	unsigned int err = 0;
-	printk("daviekuo, store_color in data %s\n",buf);
-	//breathleds_i2c_client->addr = 0xb6>>1;
-
-	if (buf != NULL && size != 0) 
-	{		
-		char led = *(buf+0);
-		char clr = *(buf+1);
-		
-		if(led == 'C' || led == 'c')
+	breathleds_i2c_client->addr = 0xb6>>1;
+	
+	if (buf != NULL && size != 0) {
+			printk("daviekuo: iiiiiiiiiii\n");
+		switch(*buf)
 		{
-			breathleds_i2c_client->addr = 0xb2>>1;
-			led_chest_color = clr;
-		}	
-		else if(led == 'E' || led == 'e')
-		{
-			breathleds_i2c_client->addr = 0xb6>>1;
-			led_ear_color = clr;
-		}	
-		switch(clr)
-		{
-
 			case 'R':
 			case 'r':
-				AW9106_SoftReset();				
-				AW9106_i2c_write_reg(0x12,0x00);   //OUT4~5配置为呼吸灯模式
-				AW9106_i2c_write_reg(0x13,0x00);   //OUT0~3配置为呼吸灯模式
-				AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能		
-				AW9106_i2c_write_reg(0x04,0x02);   //OUT4-OUT5自主呼吸BLINK模式使能 	out5/out2 R  out4/out1 G   out3/out0 B	
-				AW9106_i2c_write_reg(0x05,0x04);   //OUT0-OUT3自主呼吸BLINK模式使能		
-					
-				AW9106_i2c_write_reg(0x11,0x80);
-				printk("daviekuo: RRRRRRRR\n");
+			printk("daviekuo: RRRRRRRR\n");
+				AW9106_i2c_write_reg(0x04,0x02);   //OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B  
+	 			AW9106_i2c_write_reg(0x05,0x04);   //OUT0-OUT3自主呼吸BLINK模式使能
 	 			break;
 			case 'G':
 			case 'g':
-				 AW9106_SoftReset();				
-				 AW9106_i2c_write_reg(0x12,0x00);	//OUT4~5配置为呼吸灯模式
-				 AW9106_i2c_write_reg(0x13,0x00);	//OUT0~3配置为呼吸灯模式
-				 AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能
-				 AW9106_i2c_write_reg(0x04,0x01);	//OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B	
-				 AW9106_i2c_write_reg(0x05,0x02);	//OUT0-OUT3自主呼吸BLINK模式使能
-				 //AW9106_i2c_write_reg(0x15,0x12);	  //淡进淡出时间设置	 (256+512)	+	(256+512)
-				 //AW9106_i2c_write_reg(0x16,0x09);	  //全亮全暗时间设置 
-				 AW9106_i2c_write_reg(0x11,0x80);
-				printk("daviekuo: GGGGGGGG\n");
-				
+				printk("daviekuo: GGGGGGGGG\n");
+
+				AW9106_i2c_write_reg(0x04,0x01);   //OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B  
+	 			AW9106_i2c_write_reg(0x05,0x02);   //OUT0-OUT3自主呼吸BLINK模式使能
 				break;
 			case 'B':
 			case 'b':
-	//			 AW9106_Hw_reset();
-			     AW9106_SoftReset(); 			
-				 AW9106_i2c_write_reg(0x12,0x00);	//OUT4~5配置为呼吸灯模式
-				 AW9106_i2c_write_reg(0x13,0x00);	//OUT0~3配置为呼吸灯模式
-			     AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能		
-				 AW9106_i2c_write_reg(0x04,0x00);	//OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B	
-				 AW9106_i2c_write_reg(0x05,0x09);	//OUT0-OUT3自主呼吸BLINK模式使能
-				 //AW9106_i2c_write_reg(0x15,0x12);	 //淡进淡出时间设置    (256+512)  +   (256+512)
-				 //AW9106_i2c_write_reg(0x16,0x09);	 //全亮全暗时间设置 			 
-				 AW9106_i2c_write_reg(0x11,0x80);				
-				break;		
-				
-			case 'X':						//RG
-			case 'x':
-				AW9106_SoftReset(); 			
-				AW9106_i2c_write_reg(0x12,0x00);   //OUT4~5配置为呼吸灯模式
-				AW9106_i2c_write_reg(0x13,0x00);   //OUT0~3配置为呼吸灯模式
-				AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能		
-				AW9106_i2c_write_reg(0x04,0x03);   //OUT4-OUT5自主呼吸BLINK模式使能 	out5/out2 R  out4/out1 G   out3/out0 B	
-				AW9106_i2c_write_reg(0x05,0x06);   //OUT0-OUT3自主呼吸BLINK模式使能 	
-				//AW9106_i2c_write_reg(0x15,0x12);	//淡进淡出时间设置	  (256+512)  +	 (256+512)
-				//AW9106_i2c_write_reg(0x16,0x09);	//全亮全暗时间设置				
-				AW9106_i2c_write_reg(0x11,0x80);
-				printk("daviekuo: RRRRRRRR\n");
-				break;
-			case 'Y':						//BR
-			case 'y':
-				 AW9106_SoftReset();				
-				 AW9106_i2c_write_reg(0x12,0x00);	//OUT4~5配置为呼吸灯模式
-				 AW9106_i2c_write_reg(0x13,0x00);	//OUT0~3配置为呼吸灯模式
-				 AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能
-				 AW9106_i2c_write_reg(0x04,0x02);	//OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B	
-				 AW9106_i2c_write_reg(0x05,0x0d);	//OUT0-OUT3自主呼吸BLINK模式使能
-				 //AW9106_i2c_write_reg(0x15,0x12);	  //淡进淡出时间设置	 (256+512)	+	(256+512)
-				 //AW9106_i2c_write_reg(0x16,0x09);	  //全亮全暗时间设置 
-				 AW9106_i2c_write_reg(0x11,0x80);
-				printk("daviekuo: GGGGGGGG\n");
-				
-				break;
-			case 'Z':
-			case 'z':						//BG
-	//			 AW9106_Hw_reset();
-				 AW9106_SoftReset();			
-				 AW9106_i2c_write_reg(0x12,0x00);	//OUT4~5配置为呼吸灯模式
-				 AW9106_i2c_write_reg(0x13,0x00);	//OUT0~3配置为呼吸灯模式
-				 AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能 	
-				 AW9106_i2c_write_reg(0x04,0x01);	//OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B	
-				 AW9106_i2c_write_reg(0x05,0x0b);	//OUT0-OUT3自主呼吸BLINK模式使能
-				 //AW9106_i2c_write_reg(0x15,0x12);	 //淡进淡出时间设置    (256+512)  +   (256+512)
-				 //AW9106_i2c_write_reg(0x16,0x09);	 //全亮全暗时间设置 			 
-				 AW9106_i2c_write_reg(0x11,0x80);				
-				break;		
-			case 'A':
-			case 'a':						//White
-	//			 AW9106_Hw_reset();
-				 AW9106_SoftReset();			
-				 AW9106_i2c_write_reg(0x12,0x00);	//OUT4~5配置为呼吸灯模式
-				 AW9106_i2c_write_reg(0x13,0x00);	//OUT0~3配置为呼吸灯模式
-				 AW9106_i2c_write_reg(0x14,0x3f);//自主呼吸使能 	
-				 AW9106_i2c_write_reg(0x04,0x03);	//OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B	
-				 AW9106_i2c_write_reg(0x05,0x0f);	//OUT0-OUT3自主呼吸BLINK模式使能
-				 //AW9106_i2c_write_reg(0x15,0x12);	 //淡进淡出时间设置    (256+512)  +   (256+512)
-				 //AW9106_i2c_write_reg(0x16,0x09);	 //全亮全暗时间设置 			 
-				 AW9106_i2c_write_reg(0x11,0x80);				
+			printk("daviekuo: BBBBBBBBBB\n");				
+				AW9106_i2c_write_reg(0x04,0x00);   //OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B  
+	 			AW9106_i2c_write_reg(0x05,0x09);   //OUT0-OUT3自主呼吸BLINK模式使能
 				break;
 			default:
 				return -2;					
-		}
-		if(led == 'E' || led == 'e')
-		{
-			if(led_ear_freq == 'L' || led_ear_freq == 'l')
-			{
-				AW9106_i2c_write_reg(0x15,0x12);	  //淡进淡出时间设置	  (256+512)  +	 (256+512)
-				AW9106_i2c_write_reg(0x16,0x09);	  //全亮全暗时间设置				
-			}
-			else if(led_ear_freq == 'M' || led_ear_freq == 'm')
-			{
-				AW9106_i2c_write_reg(0x15,0x12);   //淡进淡出时间设置	  (2048 + 512)	  +  (256 + 0)
-				AW9106_i2c_write_reg(0x16,0x20);   //全亮全暗时间设置 
-			}
-			else if(led_ear_freq == 'H' || led_ear_freq == 'h')
-			{
-				AW9106_i2c_write_reg(0x15,0x09);   //淡进淡出时间设置	  (256 + 256)	  +  (0 + 256)
-				AW9106_i2c_write_reg(0x16,0x08);   //全亮全暗时间设置 
-			}
-
-		}
-		else if(led == 'C' || led == 'c')
-		{
-			if(led_chest_freq == 'L' || led_chest_freq == 'l')
-			{
-				AW9106_i2c_write_reg(0x15,0x12);	  //淡进淡出时间设置	  (256+512)  +	 (256+512)
-				AW9106_i2c_write_reg(0x16,0x09);	  //全亮全暗时间设置				
-			}
-			else if(led_chest_freq == 'M' || led_chest_freq == 'm')
-			{
-				AW9106_i2c_write_reg(0x15,0x12);   //淡进淡出时间设置	  (2048 + 512)	  +  (256 + 0)
-				AW9106_i2c_write_reg(0x16,0x20);   //全亮全暗时间设置 
-			}
-			else if(led_chest_freq == 'H' || led_chest_freq == 'h')
-			{
-				AW9106_i2c_write_reg(0x15,0x09);   //淡进淡出时间设置	  (256 + 256)	  +  (0 + 256)
-				AW9106_i2c_write_reg(0x16,0x08);   //全亮全暗时间设置 
-			}
-
 		}
 	}
 	else
 		return -1;
 	
-	return 0;
+	return 1;
 }
 
 static ssize_t show_color(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	char data[20] = {0};
-	data[0] = 'E';
-	data[1] = led_ear_color;
-	data[2] = 'C';
-	data[3] = led_chest_color;
-
-/*	
-	if(led_ear_color == 0)
-		data[1] = '0';
-	else
-		data[1] = '1';
-	if(led_chest_sta == 0)
-		data[3] = '0';
-	else
-		data[3] = '1';
-*/
-	data[4] = '\0';
-	//copy_to_user(to, data, 4);
-	strcpy(buf, data);
 	return 0;
 }
 
@@ -668,123 +418,71 @@ static DEVICE_ATTR(color, 0664, show_color, store_color);
 static ssize_t store_onoff(struct device *dev, struct device_attribute *attr,
 				  const char *buf, size_t size)
 {
-		int reg_data = 0;
-		char data[20] = {0};
-	
-		printk("daviekuo, store_onoff in data %s\n",buf);
-		//copy_from_user(data, from, len);
-		strcpy(data, buf);
-		printk("daviekuo, store_onoff in data %s\n",data);
-		char led = *(data+0);
-		char sta = *(data+1);
-	
-		if (size != 0) {
-		if(led == 'E' || led == 'e')
+	int reg_data = 0;
+	char led = *(buf+0);
+	char sta = *(buf+1);
+	printk("daviekuo, store_onoff in data %s\n",buf);
+	breathleds_i2c_client->addr = 0xb6>>1;
+	if (buf != NULL && size != 0) {
+	if(led == 'E' || led == 'e')
+	{
+		breathleds_i2c_client->addr = 0xb6>>1;
+		switch(sta)
 		{
-			breathleds_i2c_client->addr = 0xb6>>1;
-			switch(sta)
-			{
-				case '1':
-				/*	
-					AW9106_i2c_write_reg(0x02,0x3);    
-					AW9106_i2c_write_reg(0x03,0x6);  
-					led_ear_sta = 1;
-				*/
-					//AW9106_i2c_write_reg(0x014,0x3f);
-					AW9106_i2c_write_reg(0x012,0x0);	  
-					AW9106_i2c_write_reg(0x013,0x0);							
-					AW9106_i2c_write_reg(0x11,0x80);
-					led_ear_sta = 1;
-					break;
-				case '0':
-					AW9106_i2c_write_reg(0x012,0x3);	  
-					AW9106_i2c_write_reg(0x013,0xf);		
-	/*
-					AW9106_i2c_write_reg(0x02,0x3);    
-					AW9106_i2c_write_reg(0x03,0xf);    
-					led_ear_sta = 0;
-	*/
-					//AW9106_i2c_write_reg(0x02,0x3);    
-					//AW9106_i2c_write_reg(0x03,0xf);    
-					//AW9106_i2c_write_reg(0x014,0x0);		
-					//AW9106_i2c_write_reg(0x11,0x02);	//test
-	
-					led_ear_sta = 0;
-					break;
-				default:
-					return -2;					
-			}
+			case '1':				
+				AW9106_i2c_write_reg(0x02,0x3);    
+				AW9106_i2c_write_reg(0x03,0x6);    
+				break;
+			case '0':
+				AW9106_i2c_write_reg(0x02,0x3);    
+				AW9106_i2c_write_reg(0x03,0xf);    
+				break;
+			default:
+				return -2;					
 		}
-		else if(led == 'C' || led == 'c')
+	}
+	else if(led == 'C' || led == 'c')
+	{
+		breathleds_i2c_client->addr = 0xb2>>1;
+		switch(sta)
 		{
-			breathleds_i2c_client->addr = 0xb2>>1;
-			switch(sta)
-			{
-				case '1':	
-//					AW9106_i2c_write_reg(0x04,0x00);   //OUT4-OUT5自主呼吸BLINK模式使能 	out5/out2 R  out4/out1 G   out3/out0 B	
-//					AW9106_i2c_write_reg(0x05,0x09);   //OUT0-OUT3自主呼吸BLINK模式使能					
-					//AW9106_i2c_write_reg(0x02,0x3);    
-					//AW9106_i2c_write_reg(0x03,0xf); 
-					AW9106_i2c_write_reg(0x012,0x0);	  
-					AW9106_i2c_write_reg(0x013,0x0);		
-
-					//AW9106_i2c_write_reg(0x014,0x3f);	
-					AW9106_i2c_write_reg(0x11,0x80);	 
-					led_chest_sta = 1;
-					break;
-				case '0':
-
-					AW9106_i2c_write_reg(0x012,0x3);	  
-					AW9106_i2c_write_reg(0x013,0xf);		
-   					//AW9106_i2c_write_reg(0x02,0x3);    
-					//AW9106_i2c_write_reg(0x03,0xf); 
-					//AW9106_i2c_write_reg(0x014,0x0);		
-					led_chest_sta = 0;
-					break;
-
-									
-				default:
-					return -2;					
-			}
-	
-		}
-		else if(led == 'A' || led == 'a')
-		{
-			
+			case '1':				
+				AW9106_i2c_write_reg(0x012,0x0);	  
+				AW9106_i2c_write_reg(0x013,0x0);		
+				AW9106_i2c_write_reg(0x014,0x3f);	   
+				AW9106_i2c_write_reg(0x11,0x82);	 
+				break;
+			case '0':
+				AW9106_i2c_write_reg(0x012,0x3);	  
+				AW9106_i2c_write_reg(0x013,0xf);		
+				AW9106_i2c_write_reg(0x02,0x3);    
+				AW9106_i2c_write_reg(0x03,0xf);    
+				AW9106_i2c_write_reg(0x014,0x0);		
+				break;
+			default:
+				return -2;					
 		}
 	
-		}
-		else
-			return -1;
-		
-		return 0;
+	}
+	else if(led == 'A' || led == 'a')
+	{
 
+	}
+
+	}
+	else
+		return -1;
+	
+	return 0;
 }
 
 static ssize_t show_onoff(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	printk("daviekuo, show_onoff in data\n");
-
-	char data[20] = {0};
-	data[0] = 'E';
-	data[2] = 'C';
 	
-	if(led_ear_sta == 0)
-		data[1] = '0';
-	else
-		data[1] = '1';
-	if(led_chest_sta == 0)
-		data[3] = '0';
-	else
-		data[3] = '1';
-	data[4] = '\0';
-	//copy_to_user(to, data, 4);
-	strcpy(buf, data);
-
 	return 0;
 }
 
-static DEVICE_ATTR(onoff, 0664, show_onoff, store_onoff);
+static DEVICE_ATTR(onoff, 0664, show_color, store_onoff);
 
 /****************************************************************************
  * driver functions
@@ -801,7 +499,6 @@ static int breathleds_probe(struct platform_device *pdev)
 
 	return ret;
 }
-
 
 static int breathleds_remove(struct platform_device *pdev)
 {
@@ -851,12 +548,11 @@ static int breathleds_write(struct file *pfile, const char __user *from, size_t 
 	int reg_data = 0;
 	char data[20] = {0};
 
-
+	//printk("daviekuo, store_onoff in data %s\n",buf);
 	copy_from_user(data, from, len);
 
 	char led = *(data+0);
 	char sta = *(data+1);
-	printk("daviekuo, breathleds_write  %s\n",data);
 
 	if (len != 0) {
 	if(led == 'E' || led == 'e')
@@ -864,34 +560,15 @@ static int breathleds_write(struct file *pfile, const char __user *from, size_t 
 		breathleds_i2c_client->addr = 0xb6>>1;
 		switch(sta)
 		{
-			case '1':
-			/*	
+			case '1':				
 				AW9106_i2c_write_reg(0x02,0x3);    
 				AW9106_i2c_write_reg(0x03,0x6);  
 				led_ear_sta = 1;
-			*/
-			//	AW9106_i2c_write_reg(0x04,0x01);   //OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B  
-		 	//	AW9106_i2c_write_reg(0x05,0x02);   //OUT0-OUT3自主呼吸BLINK模式使能						
-				AW9106_i2c_write_reg(0x012,0x0);      
-				AW9106_i2c_write_reg(0x013,0x0);        
-				//AW9106_i2c_write_reg(0x014,0x3f);
-				AW9106_i2c_write_reg(0x11,0x80);
-				led_ear_sta = 1;
 	 			break;
 			case '0':
-				AW9106_i2c_write_reg(0x012,0x3);      
-				AW9106_i2c_write_reg(0x013,0xf);        
-				//AW9106_i2c_write_reg(0x02,0x3);    
-				//AW9106_i2c_write_reg(0x03,0xf);    
-				//AW9106_i2c_write_reg(0x014,0x0);        
-				//AW9106_i2c_write_reg(0x11,0x02);
-
-				led_ear_sta = 0;
-/*
 				AW9106_i2c_write_reg(0x02,0x3);    
 				AW9106_i2c_write_reg(0x03,0xf);    
 				led_ear_sta = 0;
-*/
 				break;
 			default:
 				return -2;					
@@ -902,23 +579,21 @@ static int breathleds_write(struct file *pfile, const char __user *from, size_t 
 		breathleds_i2c_client->addr = 0xb2>>1;
 		switch(sta)
 		{
-			case '1':						
-	 		//	AW9106_i2c_write_reg(0x04,0x01);   //OUT4-OUT5自主呼吸BLINK模式使能		out5/out2 R  out4/out1 G   out3/out0 B  
-	 		//	AW9106_i2c_write_reg(0x05,0x02);   //OUT0-OUT3自主呼吸BLINK模式使能				
+			case '1':				
 				AW9106_i2c_write_reg(0x012,0x0);      
 				AW9106_i2c_write_reg(0x013,0x0);        
-				//AW9106_i2c_write_reg(0x014,0x3f);      
-				AW9106_i2c_write_reg(0x11,0x80);	 
+				AW9106_i2c_write_reg(0x014,0x3f);      
+				AW9106_i2c_write_reg(0x11,0x82);	 
 				led_chest_sta = 1;
 	 			break;
 			case '0':
 				AW9106_i2c_write_reg(0x012,0x3);      
 				AW9106_i2c_write_reg(0x013,0xf);        
-				//AW9106_i2c_write_reg(0x02,0x3);    
-				//AW9106_i2c_write_reg(0x03,0xf);    
-				//AW9106_i2c_write_reg(0x014,0x0);        
+				AW9106_i2c_write_reg(0x02,0x3);    
+				AW9106_i2c_write_reg(0x03,0xf);    
+				AW9106_i2c_write_reg(0x014,0x0);        
 				led_chest_sta = 0;
-				break;			
+				break;
 			default:
 				return -2;					
 		}
@@ -937,7 +612,7 @@ static int breathleds_write(struct file *pfile, const char __user *from, size_t 
 }
 
 static int breathleds_read (struct file *pfile, char __user *to, size_t len, loff_t *offset)
-{	
+{
 	char data[20] = {0};
 	data[0] = 'E';
 	data[2] = 'C';
@@ -954,7 +629,6 @@ static int breathleds_read (struct file *pfile, char __user *to, size_t len, lof
 	copy_to_user(to, data, 4);
 	
 	return 0;
-
 }
 
 static struct file_operations breathleds_fops = {
@@ -1012,12 +686,8 @@ static int breathleds_i2c_probe(struct i2c_client *client, const struct i2c_devi
 		if (device_create_file(breathleds_dev, &dev_attr_onoff) < 0)
 				printk("Failed to create device file(%s)!\n",
 					  dev_attr_onoff.attr.name);   
-		if (device_create_file(breathleds_dev, &dev_attr_color) < 0)
-				printk("Failed to create device file(%s)!\n",
-					  dev_attr_color.attr.name);
-		if (device_create_file(breathleds_dev, &dev_attr_frequency) < 0)
-				printk("Failed to create device file(%s)!\n",
-					  dev_attr_frequency.attr.name);
+
+
 
 /*
 	if(strcmp(g_leds_data[i]->cdev.name, "breathled_ear") == 0) {
@@ -1117,11 +787,6 @@ static int __init breathleds_init(void)
 
 	LEDS_DRV_DEBUG("[LED]%s\n", __func__);
 	printk("daviekuo %s 1111111\n", __func__);
-	#ifdef CONFIG_HAS_EARLYSUSPEND
-	#ifdef CONFIG_EARLYSUSPEND
-	register_early_suspend(&breathleds_early_suspend_handler);
-	#endif
-	#endif
 /*	
 	mt_set_gpio_mode((GPIO128 | 0x80000000), GPIO_MODE_00);
 	mt_set_gpio_dir((GPIO128 | 0x80000000),GPIO_DIR_OUT);

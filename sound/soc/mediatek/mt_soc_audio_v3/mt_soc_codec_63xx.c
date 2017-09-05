@@ -1801,46 +1801,7 @@ static unsigned int pin_mode_extspkamp, pin_mode_extspkamp_2, pin_mode_vowclk, p
 
 #define NULL_PIN_DEFINITION    (-1)
 #define EXT_SPK_EN_PIN  (GPIO87 | 0x80000000)
-static void spk_ic_mode(int mode)
-{
-	   mt_set_gpio_mode(EXT_SPK_EN_PIN, GPIO_MODE_00); //GPIO117: DPI_D3, mode 0
-	   mt_set_gpio_pull_enable(EXT_SPK_EN_PIN, GPIO_PULL_ENABLE);
-	   mt_set_gpio_dir(EXT_SPK_EN_PIN, GPIO_DIR_OUT); // output
-	   
 
-	if(mode == 1)
-	{
-	   mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ZERO); //
-	   udelay(1); 
-	   mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ONE); //
-
-	}
-	else if(mode == 2)
-	{
-	  mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ZERO); //
-	   udelay(1); 
-	   mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ONE); //
-	     udelay(2); 
-	   mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ZERO); //
-	     udelay(1); 
-	   mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ONE); //
-
-	}
-	else if(mode ==3)
-	{
-	  mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ZERO); //
-	   udelay(1); 
-	   mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ONE); //
-	  udelay(2); 
-	   mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ZERO); //
-	  udelay(1); 
-	   mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ONE); //
-	     udelay(2); 
-	   mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ZERO); //
-	  udelay(1); 
-	   mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ONE); //
-	}
-}
 static void Ext_Speaker_Amp_Change(bool enable)
 {
 #define SPK_WARM_UP_TIME        (25) //unit is ms
@@ -1864,7 +1825,11 @@ static void Ext_Speaker_Amp_Change(bool enable)
     //    mt_set_gpio_dir(pin_extspkamp, GPIO_DIR_OUT); // output
       //  mt_set_gpio_out(pin_extspkamp, GPIO_OUT_ZERO); // low disable
 
-	 spk_ic_mode(2);
+	 
+	 mt_set_gpio_mode(EXT_SPK_EN_PIN, GPIO_MODE_00); //GPIO117: DPI_D3, mode 0
+	mt_set_gpio_pull_enable(EXT_SPK_EN_PIN, GPIO_PULL_ENABLE);
+	mt_set_gpio_dir(EXT_SPK_EN_PIN, GPIO_DIR_OUT); // output
+	mt_set_gpio_out(EXT_SPK_EN_PIN, GPIO_OUT_ONE); // 
 #if 0	
         if (pin_extspkamp_2 != NULL_PIN_DEFINITION)
         {

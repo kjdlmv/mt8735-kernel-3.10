@@ -87,8 +87,6 @@
 #include <cust_gpio_usage.h>
 #include <mach/mt_gpio.h>
 #include <mach/eint.h>
-#include <misc.h>		//added by daviekuo 0622
-#include <linux/wakelock.h>
 
 /*----------------------------------------------------------------------------*/
 /* mt8193 device information                                                  */
@@ -132,7 +130,7 @@ static struct mt8193_i2c_data *obj_i2c_data;
 int mt8193_i2c_read(u16 addr, u32 *data)
 {
 	u8 rxBuf[8] = {0};
-	int ret = 0,i;
+	int ret = 0;
 	struct i2c_client *client = mt8193_i2c_client;
 	u8 lens;
 
@@ -150,19 +148,7 @@ int mt8193_i2c_read(u16 addr, u32 *data)
 	client->addr = (client->addr & I2C_MASK_FLAG);
 	client->timing = 400;
 	client->ext_flag = I2C_WR_FLAG;
-/*
-	for(i=0;i<2;i++)
-	{
-		ret = i2c_master_send(client, (const char *)&rxBuf, (4 << 8) | lens);
-		if(ret <0)
-		{
-			mt_set_gpio_out(GPIO_BAT_ID,0);
-			msleep(100);
-			mt_set_gpio_out(GPIO_BAT_ID,1);
-			msleep(120);
-		}else break;
-	}
-*/	
+
 	ret = i2c_master_send(client, (const char *)&rxBuf, (4 << 8) | lens);
 	if (ret < 0) {
 		pr_err("%s: read error\n", __func__);
@@ -179,7 +165,7 @@ int mt8193_i2c_write(u16 addr, u32 data)
 {
 	struct i2c_client *client = mt8193_i2c_client;
 	u8 buffer[8];
-	int ret = 0,i;
+	int ret = 0;
 	struct i2c_msg msg = {
 		.addr	= client->addr & I2C_MASK_FLAG,
 		.flags	= 0,
@@ -204,19 +190,7 @@ int mt8193_i2c_write(u16 addr, u32 data)
 		buffer[4] = (data >> 8) & 0xFF;
 		buffer[5] = data & 0xFF;
 	}
-/*	
-	for(i=0;i<2;i++)
-	{
-		ret = i2c_transfer(client->adapter, &msg, 1);
-		if(ret <0)
-		{
-			mt_set_gpio_out(GPIO_BAT_ID,0);
-			msleep(100);
-			mt_set_gpio_out(GPIO_BAT_ID,1);
-			msleep(120);
-		}else break;			
-	}
-*/	
+
 	ret = i2c_transfer(client->adapter, &msg, 1);
 	if (ret < 0) {
 		pr_err("%s: send command error\n", __func__);
@@ -271,10 +245,6 @@ static int mt8193_i2c_remove(struct i2c_client *client)
 #define GPIO_JTDO_PIN   (GPIO73|0x80000000)
 #define GPIO_HDMIPOWER_PIN   (GPIO120|0x80000000)
 
-#define GPIO_101   (GPIO101|0x80000000)
-#define GPIO_102   (GPIO102|0x80000000)
-#define GPIO_119   (GPIO119|0x80000000)
-
 
 static int mt8193_probe(struct platform_device *pdev)
 {
@@ -296,11 +266,6 @@ static int mt8193_probe(struct platform_device *pdev)
 		mt_set_gpio_mode(GPIO_HDMIPOWER_PIN, GPIO_MODE_00);  
 		mt_set_gpio_dir(GPIO_HDMIPOWER_PIN, GPIO_DIR_OUT) ;   
 		mt_set_gpio_out(GPIO_HDMIPOWER_PIN,1);
-
-		
-		//mt_set_gpio_mode(GPIO_BAT_ID, GPIO_MODE_00);  //hdmi ic(mt8193 3.3V 1.2V)  power
-		//mt_set_gpio_dir(GPIO_BAT_ID, GPIO_DIR_OUT) ;   
-		//mt_set_gpio_out(GPIO_BAT_ID,1);
 #endif
 
 	if (i2c_add_driver(&mt8193_i2c_driver)) {
@@ -345,27 +310,9 @@ static struct platform_driver mt8193_mb_driver = {
 };
 
 #define uint08 unsigned char 
-extern int Setting_input_video(int video);
-extern int Setting_Led_Current(uint08 led_drive_current);
-extern int Setting_Image_Correct(uint08 m_throw,uint08 l_throw,uint08 m_DMD,uint08 l_DMD,uint08 l_PP,uint08 m_PP);
-extern void dpp3438_power_on(void);
-extern void dpp3438_power_off(void);
-extern void write_dpp3430_i2c(uint08 addr, uint08 subaddr, uint08 *Param, uint08 ParamSize);
-extern unsigned char key_switch_flag;
-extern bool hdmi_open_flag;
-extern wait_queue_head_t dpp3438_thread_wq;
-extern int Seting_Image_Rotation(int val);
-uint08 system_bootup_flag=0;
-extern int dpp3438_logo_show(void);
-extern int dpp3438_status_flag;
-extern int dpp3438_power_rate ;
-extern int reset_mic_cx20810(void);
-extern bool gsensor_data_switch;
-extern int gsensor_buf[3];
-extern int yyd_lock_system;
-extern struct wake_lock yyd_m_lock;
-
-
+extern void Setting_input_video(int video);
+extern void Setting_Led_Current(uint08 led_drive_current);
+extern void Setting_Image_Correct(uint08 m_throw,uint08 l_throw,uint08 m_DMD,uint08 l_DMD,uint08 l_PP,uint08 m_PP);
 
 static ssize_t hdmi_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
@@ -379,29 +326,26 @@ static ssize_t hdmi_write(struct file *file, const char __user *buf, size_t coun
    printk("111111%c,%d\n",pbuf[0],pbuf[1]);
    if(pbuf[0]=='A') //inter
    {
+
 			   mt_set_gpio_mode(GPIO_JTCK_PIN, GPIO_MODE_00);  ///TEST
 			   mt_set_gpio_dir(GPIO_JTCK_PIN, GPIO_DIR_OUT) ;	
-			   mt_set_gpio_out(GPIO_JTCK_PIN,0);
-			     msleep(100);
-		   	    mt_set_gpio_out(GPIO_JTCK_PIN,1);	  
-			   
+			   mt_set_gpio_out(GPIO_JTCK_PIN,1);
+				   
 			   mt_set_gpio_mode(GPIO_JTDI_PIN, GPIO_MODE_00);  
 			   mt_set_gpio_dir(GPIO_JTDI_PIN, GPIO_DIR_OUT) ;	
 			   mt_set_gpio_out(GPIO_JTDI_PIN,0);
 			   
 			   mt_set_gpio_mode(GPIO_JTDO_PIN, GPIO_MODE_00);  
 			   mt_set_gpio_dir(GPIO_JTDO_PIN, GPIO_DIR_OUT) ;	
-			   mt_set_gpio_out(GPIO_JTDO_PIN,0);
+			   mt_set_gpio_out(GPIO_JTDO_PIN,0);		
 
-			   dpp3438_status_flag &=0xfd;
    }
    else if(pbuf[0]=='B') //external
    {
+
 			   mt_set_gpio_mode(GPIO_JTCK_PIN, GPIO_MODE_00);  ///TEST
 			   mt_set_gpio_dir(GPIO_JTCK_PIN, GPIO_DIR_OUT) ;	
-			     mt_set_gpio_out(GPIO_JTCK_PIN,0);
-			    msleep(100);
-		   	    mt_set_gpio_out(GPIO_JTCK_PIN,1);	  
+			   mt_set_gpio_out(GPIO_JTCK_PIN,1);
 				   
 			   mt_set_gpio_mode(GPIO_JTDI_PIN, GPIO_MODE_00);  
 			   mt_set_gpio_dir(GPIO_JTDI_PIN, GPIO_DIR_OUT) ;	
@@ -410,7 +354,9 @@ static ssize_t hdmi_write(struct file *file, const char __user *buf, size_t coun
 			   mt_set_gpio_mode(GPIO_JTDO_PIN, GPIO_MODE_00);  
 			   mt_set_gpio_dir(GPIO_JTDO_PIN, GPIO_DIR_OUT) ;	
 			   mt_set_gpio_out(GPIO_JTDO_PIN,1);
-			   dpp3438_status_flag |=0x02;
+		   		
+
+
    }
    else if(pbuf[0]=='C') //power on
    {
@@ -432,19 +378,6 @@ static ssize_t hdmi_write(struct file *file, const char __user *buf, size_t coun
 	  Setting_Led_Current(1);
 	else if(pbuf[1]=='B')
 	Setting_Led_Current(2);
-	else if(pbuf[1]=='C')
-	Setting_Led_Current(3);
-	else if(pbuf[1]=='D')
-	  system_bootup_flag=true;
-	else if(pbuf[1]=='E')
-	  system_bootup_flag=false;	
-	else if(pbuf[1]=='F')
-	return reset_mic_cx20810();
-	else if(pbuf[1]=='G')
-          gsensor_data_switch=true;
-	else if(pbuf[1]=='H')
-          gsensor_data_switch=false;
-		
    }
    else if(pbuf[0]=='F')
    {
@@ -454,7 +387,31 @@ static ssize_t hdmi_write(struct file *file, const char __user *buf, size_t coun
    }
     else if(pbuf[0]=='G')
     {
-
+#if 0
+	  argv +=2;
+	  while( *argv)
+	  	{
+                           if (strcmp(*argv, "lt") == 0) {
+				argv++;
+				if (*argv)
+					 l_throw = simple_strtol(*argv, NULL, 10);
+			} else if (strcmp(*argv, "mt") == 0) {
+				argv++;
+				if (*argv)
+					 m_throw = simple_strtol(*argv, NULL, 10);
+			}else if (strcmp(*argv, "ld") == 0) {
+				argv++;
+				if (*argv)
+					l_DMD = simple_strtol(*argv, NULL, 10);
+			} else if (strcmp(*argv, "md") == 0) {
+				argv++;
+				if (*argv)
+					 m_DMD = simple_strtol(*argv, NULL, 10);
+			}
+			if (*argv)
+				argv++;
+    	}
+ #endif
    	 l_throw =     simple_strtol(&pbuf[1], NULL, 10);
 	  m_throw =  simple_strtol(&pbuf[5], NULL, 10);
 	   l_DMD =     simple_strtol(&pbuf[9], NULL, 10);
@@ -464,50 +421,13 @@ static ssize_t hdmi_write(struct file *file, const char __user *buf, size_t coun
  	  Setting_Image_Correct(m_throw,l_throw,m_DMD,l_DMD,l_PP,m_PP);
 
 	  printk("ddddd=%d,%d,%d,%d,%d,%d\n",l_throw,m_throw,l_DMD,m_DMD,l_PP,m_PP);
-    }
-  else if(pbuf[0]=='H')
-	 {
-	   uint08 regaddr,value,len=1;
-	   uint08 buf[2];
-
-	  value =     simple_strtol(&pbuf[1], NULL, 16);
-	  Seting_Image_Rotation(value);
-	 }
-   else if(pbuf[0]=='I')
- {
-     if((dpp3438_status_flag&0x02) !=0x02)
-     	{
-     	   mt_set_gpio_out(GPIO_JTCK_PIN,0);
-		   msleep(100);
-	    mt_set_gpio_out(GPIO_JTCK_PIN,1);	   
-	 }
-
- }
-      else if(pbuf[0]=='J')
- {
-   	 if(pbuf[1]=='A')
-   	 {
-   	 	if(yyd_lock_system == false)
-   	 	{
-			 yyd_lock_system=true;
-			wake_unlock(& yyd_m_lock);
-   	 	}
-	 }
-	 else  if(pbuf[1]=='B')
-	 {
-	 	if(yyd_lock_system ==true)
-		{
-		yyd_lock_system=false;
-		wake_lock(& yyd_m_lock);
-	 	}
-	 }
-
- }
+    }	
    return count;
 }
 
 static ssize_t hdmi_read( struct file *file,char __user *buffer, size_t len, loff_t *offset )
 {
+	
 	return len;
 }
 static int hdmi_release (struct inode *node, struct file *file)
@@ -522,29 +442,26 @@ static int hdmi_open (struct inode *inode, struct file *file)
 	return nonseekable_open(inode, file);
 }
 
+extern void dpp3438_power_on(void);
+extern void dpp3438_power_off(void);
+extern void Setting_input_video(int video);
+extern void Setting_Led_Current(unsigned char led_drive_current);
+extern void Setting_Image_Correct(uint08 m_throw,uint08 l_throw,uint08 m_DMD,uint08 l_DMD,uint08 l_PP,uint08 m_PP);
+
+
 static long hdmi_unlocked_ioctl (struct file *pfile, unsigned int cmd, unsigned long param)
 {
-	struct ddp_config ddp3438;
-	 struct stm_config stm_ctl;
+	 struct ddp_config ddp3438;
 	int err;
-	int charger_type;
-	void __user *argp = (void __user *)param;
+	
 		switch(cmd)
 		{
 		  case DPP3438_POWER_ON:
-			if(hdmi_open_flag == true)
-			{
-			key_switch_flag=1;
-			wake_up(&dpp3438_thread_wq);			
-			}
+			  dpp3438_power_on();
+			  Setting_input_video(0);
 			break;
 		case DPP3438_POWER_OFF:
-			if(hdmi_open_flag == false)
-			{
-			key_switch_flag=1;
-			wake_up(&dpp3438_thread_wq);
-			}
-			
+			dpp3438_power_off();
 			break;
 		case DPP3438_CORRECT:
 			if(copy_from_user(&ddp3438, (struct ddp_config*)param, sizeof(ddp3438)))
@@ -553,18 +470,6 @@ static long hdmi_unlocked_ioctl (struct file *pfile, unsigned int cmd, unsigned 
 				goto err_out;
 			}
 			Setting_Image_Correct(ddp3438.m_throw,ddp3438.l_throw,ddp3438.m_DMD,ddp3438.l_DMD,ddp3438.l_PP,ddp3438.m_PP);
-			printk("ddp3438.l_throw=%d,  %d,,,%d,,,%d\n",ddp3438.m_throw,ddp3438.l_throw,ddp3438.m_DMD,ddp3438.l_DMD);
-			break;
-		case	DPP3438_PICTRUE_ROTATION:
-			if(copy_from_user(&ddp3438, (struct ddp_config*)param, sizeof(ddp3438)))
-			{
-				err = -EFAULT;
-				goto err_out;
-			}
-			if(ddp3438.buf[0] == INVERSION)
-			   Seting_Image_Rotation(0x06);
-			else if(ddp3438.buf[0] == COROTATION)
-			   Seting_Image_Rotation(0);
 			
 			break;
 		case DPP3438_POWER_RATE:
@@ -574,58 +479,6 @@ static long hdmi_unlocked_ioctl (struct file *pfile, unsigned int cmd, unsigned 
 				goto err_out;
 			}
 			Setting_Led_Current(ddp3438.power_rate);
-			dpp3438_power_rate=ddp3438.power_rate;
-			break;
-		case STM_POWER_CTL:
-			if(copy_from_user(&stm_ctl, (void __user*)param, sizeof(stm_ctl)))
-			{
-				err = -EFAULT;
-				goto err_out;
-			}
-			if(stm_ctl.pin ==101)
-			{
-			mt_set_gpio_mode(GPIO_101, GPIO_MODE_00);	
-			mt_set_gpio_dir(GPIO_101, GPIO_DIR_OUT) ;	 
-			mt_set_gpio_out(GPIO_101,stm_ctl.val);
-			}
-			else if(stm_ctl.pin ==102)
-			{
-				mt_set_gpio_mode(GPIO_102, GPIO_MODE_00);	
-				mt_set_gpio_dir(GPIO_102, GPIO_DIR_OUT) ;	 
-				mt_set_gpio_out(GPIO_102,stm_ctl.val);
-
-			}
-			else if(stm_ctl.pin ==119)
-			{
-				mt_set_gpio_mode(GPIO_119, GPIO_MODE_00);	
-				mt_set_gpio_dir(GPIO_119, GPIO_DIR_OUT) ;	 
-				mt_set_gpio_out(GPIO_119,stm_ctl.val);
-
-			}
-			
-			break;
-
-			case DPP3438_STATUS:
-				if(copy_to_user(argp, &dpp3438_status_flag, sizeof(dpp3438_status_flag)))
-				{
-					err = -EFAULT;
-					goto err_out;
-				}			   
-			break;
-			case CHECK_CHARGER_TYPE:
-				charger_type= mt_get_gpio_in(CHG_DET_PIN);
-				if(copy_to_user(argp, &charger_type, sizeof(charger_type)))
-				{
-					err = -EFAULT;
-					goto err_out;
-				}			   
-			break;
-			case READ_GSENSOR_DATA:				
-				if(copy_to_user(argp, gsensor_buf, sizeof(gsensor_buf)))
-				{
-					err = -EFAULT;
-					goto err_out;
-				}			   
 			break;
 
 		}
@@ -664,9 +517,7 @@ static int __init mt8193_mb_init(void)
 	int ret = 0;
 
 	pr_info("%s\n", __func__);
-	 mt_set_gpio_mode(GPIO_BAT_ID, GPIO_MODE_00);  //hdmi ic(mt8193 3.3V 1.2V)  power
-		mt_set_gpio_dir(GPIO_BAT_ID, GPIO_DIR_OUT) ;   
-		mt_set_gpio_out(GPIO_BAT_ID,0);
+	 
 #ifdef CONFIG_MTK_MULTIBRIDGE_SUPPORT
     ret = platform_device_register(&mtk_multibridge_dev);
     printk("[%s]: multibridge_driver_device, retval=%d \n!", __func__, ret);
@@ -711,7 +562,6 @@ static int __init mt8193_mb_init(void)
 		 if (IS_ERR(h_device))
 			 printk("Failed to create motor_dev device\n");
 #endif
-	mt_set_gpio_out(GPIO_BAT_ID,1);
 
 	return 0;
 EXIT:

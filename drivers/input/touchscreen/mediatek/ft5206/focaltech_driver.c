@@ -473,18 +473,31 @@ static int tpd_i2c_read_bytes(struct i2c_client *client, u16 addr, u8 *rxbuf, in
 			    {
 			          //tpd_down(720-cinfo.x[i], 1280-cinfo.y[i], cinfo.id[i]);
 					  //tpd_down(1280-cinfo.y[i], cinfo.x[i], cinfo.id[i]);
+					  // tpd_down(cinfo.x[i], 1280-cinfo.y[i], cinfo.id[i]);
+					 //  tpd_down(480-cinfo.x[i], 854-cinfo.y[i], cinfo.id[i]);//y50b-new
+
 			         // tpd_down(cinfo.x[i], 854-cinfo.y[i], cinfo.id[i]);
-					 tpd_down((1280- cinfo.y[i]) * 720 / 1280, (720 - cinfo.x[i]) * 1280 / 720, cinfo.id[i]);  // Modified by Bright
+					 //tpd_down((1280- cinfo.y[0]) * 720 / 1280, (720 - cinfo.x[0]) * 1280 / 720, cinfo.id[i]);  // Modified by Bright
+					// tpd_down((854- cinfo.y[i]) * 480 / 854, (480 - cinfo.x[i]) * 854 / 480, cinfo.id[i]);  // Modified by Bright
+					  //tpd_down((854- cinfo.y[i]) * 480 / 854, (cinfo.x[i]) * 854 / 480, cinfo.id[i]); 
+					  tpd_down((1280- cinfo.y[i]) * 720 / 1280, cinfo.x[i] * 1280 / 720, cinfo.id[i]);
 
 			    }
 			    input_sync(tpd->dev);
 			}
 			else  
     			{
-			     // tpd_up(cinfo.x[0], 854-cinfo.y[0]);
+			      //tpd_up(cinfo.x[0], 854-cinfo.y[0]);
+//				 tpd_up(1280-cinfo.y[0], cinfo.x[0]);
+				  //tpd_up(cinfo.x[0], 1280-cinfo.y[0]);
+				//  tpd_up(480-cinfo.x[0], 854-cinfo.y[0]);//y50b-new
+
 				  //tpd_up(720-cinfo.x[0], 1280-cinfo.y[0]);
-				 tpd_up((1280 - cinfo.y[0]) * 720 / 1280, (720 - cinfo.x[0]) * 1280 / 720);	// Modified by Bright		  
-        	     input_sync(tpd->dev);
+				  //tpd_up((1280- cinfo.y[0]) * 720 / 1280, (720 - cinfo.x[0]) * 1280 / 720);  // Modified by Bright
+				// tpd_up((854- cinfo.y[0]) * 480 / 854, (480 - cinfo.x[0]) * 854 / 480);  // Modified by Bright
+				 //tpd_up((854- cinfo.y[0]) * 480 / 854, (cinfo.x[0]) * 854 / 480);  
+				  tpd_up((1280 - cinfo.y[0]) * 720 / 1280, cinfo.x[0] * 1280 / 720);
+        	   			  input_sync(tpd->dev);
         		}
         	}
  	mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM);        	
@@ -503,6 +516,7 @@ static void tpd_eint_interrupt_handler(void)
 	//TPD_DEBUG("TPD interrupt has been triggered\n");
 	TPD_DEBUG_PRINT_INT;
 	tpd_flag = 1;
+	printk("CUST_EINT_TOUCH_PANEL_NUM===1111  %d\n",CUST_EINT_TOUCH_PANEL_NUM);
 	wake_up_interruptible(&waiter);
 }
 static int  tpd_probe(struct i2c_client *client, const struct i2c_device_id *id)
@@ -558,7 +572,7 @@ reset_proc:
  
  	mt_eint_registration(CUST_EINT_TOUCH_PANEL_NUM, CUST_EINT_TOUCH_PANEL_TYPE, tpd_eint_interrupt_handler, 0); 
  	mt_eint_unmask(CUST_EINT_TOUCH_PANEL_NUM);
-	
+	printk("CUST_EINT_TOUCH_PANEL_NUM===%d\n",CUST_EINT_TOUCH_PANEL_NUM);
 #ifdef TPD_AUTO_UPGRADE
 #ifndef TPD_SYSFS_DEBUG
 	I2CDMABuf_va = (u8 *)dma_alloc_coherent(NULL, FTS_DMA_BUF_SIZE, &I2CDMABuf_pa, GFP_KERNEL);

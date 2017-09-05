@@ -1,4 +1,4 @@
-/* Copyright Statement: 
+/* Copyright Statement:
  *
  * This software/firmware and related documentation ("MediaTek Software") are
  * protected under relevant copyright laws. The information contained herein

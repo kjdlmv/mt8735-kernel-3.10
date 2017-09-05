@@ -188,7 +188,6 @@ static int NSA_get_reg_data(MIR_HANDLE handle, char *buf);
 /**************************************************************** COMMON ***************************************************************************/
 #define MIR3DA_GSENSOR_SCHEME           MIR3DA_SUPPORT_CHIP_LIST
 
-extern V_90;
 
 /* this level can be modified while runtime through system attribute */
 int                                 Log_level = DEBUG_ERR;//|DEBUG_ASSERT|DEBUG_MSG|DEBUG_FUNC|DEBUG_DATA;
@@ -873,11 +872,10 @@ static int NSA_calibrate(MIR_HANDLE handle, int coarse_step[3], int fine_step[3]
        }
        target[2] = (xyz[2] > 0) ? 1024 : (-1024);
     }
-#if V_90
+	
 	target[0] = 0;
-	target[1] = 0;
-	target[2] = 1024;
-#endif
+	target[1] = 1024;
+	target[2] = 0;
     MI_MSG("---Start Calibrate, trim target %d, %d, %d---\n", target[0], target[1], target[2]);
 
     // Stage1: Coarse tune once

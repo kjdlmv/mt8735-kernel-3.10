@@ -18,7 +18,7 @@ obj-y   += watchpoint/
 obj-y	+= mach/
 obj-y	+= kernel/
 obj-y	+= aee/
-#obj-y	+= ir_etk/
+obj-y	+= ir_etk/
 obj-y	+= mic5/
 
 obj-$(CONFIG_MTK_FMRADIO)	+= fmradio/
@@ -155,8 +155,8 @@ endif
 
 obj-$(CONFIG_MTK_LEDS)	+= leds/
 obj-y	+= breathled/
+#obj-y	+= ircam/
 obj-y	+= masp/
-obj-y	+= ircam/
 obj-$(CONFIG_MTK_MMC)	+= mmc-host/
 #obj-$(CONFIG_MTK_ETM)	+= mt_etm/
 #obj-$(CONFIG_MTK_MTD_NAND)	+= nand/

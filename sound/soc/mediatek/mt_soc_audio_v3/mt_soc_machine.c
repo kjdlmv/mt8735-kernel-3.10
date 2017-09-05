@@ -509,13 +509,13 @@ static ssize_t mt_soc_debug_read(struct file *file, char __user *buf,
     n += scnprintf(buffer + n, size - n, "AFE_ASRC4_CON5		   = 0x%x\n", Afe_Get_Reg(AFE_ASRC4_CON5));
     n += scnprintf(buffer + n, size - n, "AFE_ASRC4_CON6		   = 0x%x\n", Afe_Get_Reg(AFE_ASRC4_CON6));
     n += scnprintf(buffer + n, size - n, "AFE_ASRC4_CON7		   = 0x%x\n", Afe_Get_Reg(AFE_ASRC4_CON7));
-    n += scnprintf(buffer + n, size - n, "AUDIO_CLK_AUDDIV_0  = 0x%x\n", Afe_Get_Reg(AUDIO_CLK_AUDDIV_0));
-    n += scnprintf(buffer + n, size - n, "AUDIO_CLK_AUDDIV_1  = 0x%x\n", Afe_Get_Reg(AUDIO_CLK_AUDDIV_1));
-   n += scnprintf(buffer + n, size - n, "AFE_ADDA4_TOP_CON0	   = 0x%x\n", Afe_Get_Reg(AFE_ADDA4_TOP_CON0));
+    n += scnprintf(buffer + n, size - n, "AFE_ADDA4_TOP_CON0	   = 0x%x\n", Afe_Get_Reg(AFE_ADDA4_TOP_CON0));
     n += scnprintf(buffer + n, size - n, "AFE_ADDA4_UL_SRC_CON0  = 0x%x\n", Afe_Get_Reg(AFE_ADDA4_UL_SRC_CON0));
     n += scnprintf(buffer + n, size - n, "AFE_ADDA4_UL_SRC_CON1  = 0x%x\n", Afe_Get_Reg(AFE_ADDA4_UL_SRC_CON1));
     n += scnprintf(buffer + n, size - n, "AFE_ADDA4_NEWIF_CFG0   = 0x%x\n", Afe_Get_Reg(AFE_ADDA4_NEWIF_CFG0));
     n += scnprintf(buffer + n, size - n, "AFE_ADDA4_NEWIF_CFG1   = 0x%x\n", Afe_Get_Reg(AFE_ADDA4_NEWIF_CFG1));
+    n += scnprintf(buffer + n, size - n, "AUDIO_CLK_AUDDIV_0  = 0x%x\n", GetClkCfg(AUDIO_CLK_AUDDIV_0));
+    n += scnprintf(buffer + n, size - n, "AUDIO_CLK_AUDDIV_1  = 0x%x\n", GetClkCfg(AUDIO_CLK_AUDDIV_1));
     printk("mt_soc_debug_read len = %d\n", n);
     AudDrv_Clk_Off();
 

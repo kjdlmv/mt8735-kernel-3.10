@@ -383,9 +383,6 @@ void kpd_pmic_rstkey_handler(unsigned long pressed)
 }
 
 /*********************************************************************/
-extern unsigned char key_switch_flag;
-extern wait_queue_head_t dpp3438_thread_wq;
-extern unsigned char system_bootup_flag;
 
 /*********************************************************************/
 static void kpd_keymap_handler(unsigned long data)
@@ -395,8 +392,6 @@ static void kpd_keymap_handler(unsigned long data)
 	u16 new_state[KPD_NUM_MEMS], change, mask;
 	u16 hw_keycode, linux_keycode;
 	kpd_get_keymap_state(new_state);
-
-	static int hdmi_sta = 0;
 	
 #ifdef CONFIG_MTK_TC1_FM_AT_SUSPEND
 	wake_lock_timeout(&kpd_suspend_lock, HZ / 2);
@@ -427,12 +422,6 @@ static void kpd_keymap_handler(unsigned long data)
 			}
 			
 			kpd_aee_handler(linux_keycode, pressed);
-			if(system_bootup_flag==true &&linux_keycode == 215 && pressed==0 )
-			{	
-				  key_switch_flag=1;
-				 wake_up(&dpp3438_thread_wq);
-			
-			}
 			kpd_backlight_handler(pressed, linux_keycode);
 			input_report_key(kpd_input_dev, linux_keycode, pressed);
 			input_sync(kpd_input_dev);
@@ -854,7 +843,6 @@ static int kpd_pdrv_probe(struct platform_device *pdev)
 #ifdef KPD_KEY_MAP
 		__set_bit(KPD_KEY_MAP, kpd_input_dev->keybit);
 #endif
-//	__set_bit(KEY_PLAYPAUSE, kpd_input_dev->keybit); //daviekuo
 
 	kpd_input_dev->dev.parent = &pdev->dev;
 	r = input_register_device(kpd_input_dev);

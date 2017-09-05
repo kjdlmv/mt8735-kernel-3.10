@@ -133,6 +133,12 @@ u8 cfg_len = 0;
 s32 i2c_read_bytes(struct i2c_client *client, u16 addr, u8 *rxbuf, int len);
 s32 i2c_write_bytes(struct i2c_client *client, u16 addr, u8 *txbuf, int len);
 static struct proc_dir_entry *gt91xx_config_proc;
+unsigned char gtp_default_FW[]={
+	
+};
+unsigned char gtp_default_FW_fl[] = {
+	
+};
 
 /*******************************************************
 Function:

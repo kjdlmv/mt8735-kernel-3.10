@@ -12,13 +12,7 @@
 #include <linux/wait.h>
 #include <linux/time.h>
 #include <linux/delay.h>
-#include <linux/cdev.h>
-#include <linux/device.h>   /*class_create*/ 
-#include <asm/uaccess.h>	/* copy_*_user */
-#include <linux/input.h>
-#include <linux/string.h>
 
-#include "tpd.h"
 extern struct tpd_device *tpd;
 
 #define DEV_NAME   "ircam"
@@ -28,41 +22,50 @@ static struct class *ircam_class = NULL;
 struct device *ircam_device = NULL;
 
 
-static void tpd_down(int x, int y, int d) {
+static  void tpd_down(int x, int y, int id) {
 	 input_report_key(tpd->dev, BTN_TOUCH, 1);
 	 input_report_abs(tpd->dev, ABS_MT_TOUCH_MAJOR, 20);
 	 input_report_abs(tpd->dev, ABS_MT_POSITION_X, x);
 	 input_report_abs(tpd->dev, ABS_MT_POSITION_Y, y);
-	 input_report_abs(tpd->dev, ABS_MT_TRACKING_ID, d); 
+	 input_report_abs(tpd->dev, ABS_MT_TRACKING_ID, id); 
 	 input_mt_sync(tpd->dev);
+	 TPD_EM_PRINT(x, y, x, y, id-1, 1);
+	 if (FACTORY_BOOT == get_boot_mode()|| RECOVERY_BOOT == get_boot_mode())
+	 {	 
+		 tpd_button(x, y, 1);  
+	 }
 }
   
-static void tpd_up(int x, int y) {
-	input_report_key(tpd->dev, BTN_TOUCH, 0);	  
+static  void tpd_up(int x, int y) {
+	input_report_key(tpd->dev, BTN_TOUCH, 0);
+	TPD_EM_PRINT(x, y, x, y, 0, 0);
+	if (FACTORY_BOOT == get_boot_mode()|| RECOVERY_BOOT == get_boot_mode())
+	{	 
+		tpd_button(x, y, 0); 
+	}			  
 }
 
 static int ir_cam_report(int x, int y, int d)
 { 
-	 int i=0;
+	 struct touch_info cinfo, pinfo;
+	 int i=0, point_num=0;
 	 
 	 if(d > 0) 
 	 {
-		 //for(i =0; i<point_num; i++)
+		 for(i =0; i<point_num; i++)
 		 {
 			//tpd_down(720-cinfo.x[i], 1280-cinfo.y[i], cinfo.id[i]);
 			//tpd_down(1280-cinfo.y[i], cinfo.x[i], cinfo.id[i]);
-			//tpd_down(x, 854-y, 0);
+			// tpd_down(cinfo.x[i], 854-cinfo.y[i], cinfo.id[i]);
 			tpd_down((1280- y) * 720 / 1280, (720 - x) * 1280 / 720, 0);	// Modified by Bright
-			//tpd_down((854- y) * 480 / 854, (480 - x) * 854 / 480, 0);	// Modified by Bright
 		 }
 		 input_sync(tpd->dev);
 	 }
 	 else  
 	 {
-		   //tpd_up(x, 854-y);
+		  // tpd_up(cinfo.x[0], 854-cinfo.y[0]);
 		   //tpd_up(720-cinfo.x[0], 1280-cinfo.y[0]);
 		  tpd_up((1280 - y) * 720 / 1280, (720 - x) * 1280 / 720); // Modified by Bright		   
-		  //tpd_up((854 - y) * 480 / 854, (480 - x) * 854 / 480); // Modified by Bright		
 		  input_sync(tpd->dev);
 	 }
 	 printk(" x = %d, y = %d, d = %d\n", x, y, d);
@@ -89,35 +92,34 @@ static int ircam_open (struct inode *inode, struct file *file)
 
 static int ircam_write(struct file *pfile, const char __user *from, size_t len, loff_t * offset)
 {
-	int i = 0, j = 0, k = 0, len_t = 0;
-	int touch[3] = {0}; 
+	int reg_data = 0;
+	int x = 0, y = 0, d = 0; 
 
 	char data[128] = {0};
 	char tmp[8] = {0};
-	copy_from_user(data, from, len);
-	data[len] = '\0';
-	printk("daviekuo %s received data: %s",__FUNCTION__, data);
-	len_t = strlen(data);
-/*
-	if(len_t < len)	
+	//printk("daviekuo, store_onoff in data %s\n",buf);
+	if (len != 0) 
+	{	
+		copy_from_user(data, from, len);
+		memcpy(tmp, data, 4);
+		tmp[4] = '\0';
+		x = strtoul(tmp, 0, 10);
+		
+		memcpy(tmp, data + 4, 3);
+		tmp[3] = '\0';
+		y = strtoul(tmp, 0, 10);
+
+		memcpy(tmp, data + 7, 1);
+		tmp[1] = '\0';
+		d = strtoul(tmp, 0, 10);		
+		ir_cam_report(x, y, d);
+	}
+	else
 	{
-		printk(KERN_ERR" %s len error !\n", __FUNCTION__);
+		printk(KERN_ERR, " %s len error\n", __FUNCTION__);
 		return -1;
 	}
-	*/
-	for(i = 0, j = 0; i < 3 && j<len_t; i++)
-	{
-		for(k = 0; data[j+k] != '#';k++)
-			;
-		memcpy(tmp, &data[j], k);
-		j=j+k+1;
-		tmp[k] = '\0';
-		touch[i] = simple_strtoul(tmp, 0, 10);
-	}
 	
-	ir_cam_report(touch[0],touch[1],touch[2]);
-	printk("daviekuo, x = %d y = %d  d = %d \n",touch[0],touch[1],touch[2]);
-	printk(KERN_ERR" %s len = %d len_t = %d !\n", __FUNCTION__, len,len_t);
 
 	return 0;
 }
@@ -172,6 +174,10 @@ static int __init ircam_init(void)
 	 if (IS_ERR(ircam_device))
 		 printk("Failed to create ircam_dev device\n");
 
+	 if (device_create_file(ircam_device, &dev_attr_ircam_ctl) < 0)
+	         printk("Failed to create device file(%s)!\n",
+				   dev_attr_ircam_ctl.attr.name);	
+
 printk("ircam  init  finish--------\n");
 
 	return 0;
@@ -192,14 +198,19 @@ EXIT:
 
 static void __exit ircam_exit(void)
 {
-	int err;
-
+	  int err;
+#if 1
 	if(ircam_cdev != NULL)
-	{
-	    cdev_del(ircam_cdev);
-	    ircam_cdev = NULL;
-	}
-	unregister_chrdev_region(ic_dev, 1);
+          {
+	        cdev_del(ircam_cdev);
+	        ircam_cdev = NULL;
+         }
+#endif
+         unregister_chrdev_region(ic_dev, 1);
+
+ if(thread !=NULL)
+	  kthread_stop(thread);
+  return;
 
 }
 

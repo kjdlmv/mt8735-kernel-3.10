@@ -24,8 +24,6 @@
 #include <mach/mt_gpio.h>
 #include <mach/eint.h>
 #include <mach/mt_pm_ldo.h>
-#include <linux/wakelock.h>
-#include <linux/earlysuspend.h>
 
 //  mem define
 //static unsigned int map_io_base;
@@ -56,11 +54,6 @@ static void __iomem *map_io_base;
 #define I2C_CX20810_DRIVER_NAME "i2c_cx20810"
 #define I2C_CX20810_DRIVER_NAME1 "i2c_cx20810_1"
 
-#define GPIO44_3_3V_PIN (GPIO44|0x80000000)   //ADC POWER
-#define GPIO60_LDO_PIN (GPIO60|0x80000000)   //ADC POWER
-#define GPIO171_ADC_RST1_PIN (GPIO171|0x80000000)   //low power 3b
-#define GPIO128_ADC_RST2_PIN (GPIO128|0x80000000)   //high power 35
-#define GPIO129_FPGA_DAT_PIN (GPIO129|0x80000000)    
 
 #define MAX_CX20810_NUM (3)
 
@@ -199,26 +192,7 @@ static int i2c_master_send_array_to_cx20810(const struct i2c_client *client, con
     }
     return 0;
 }
-int reset_mic_cx20810(void)
-{
-	int ret1 ,ret2;
-	mt_set_gpio_out(GPIO44_3_3V_PIN,0);
-	mdelay(100);
-	mt_set_gpio_out(GPIO44_3_3V_PIN,1);
-	mdelay(200);
 
-	cx20810_set_mode(0,0);
-	ret1=ADC_i2c_read_reg(0x10,0);
-	printk("111add35=%x\n", ret1);
-	mdelay(650);
-	cx20810_set_mode(0,1);
-	ret2=ADC_i2c_read_reg(0x10,1);
-	printk("111add3b=%x\n",ret2 );
-
-	if(ret1 ==0x5f && ret2 == 0x5f)
-		return 1;
-         return 0;
-}
 // initial cx20810
 static void cx20810_init(int index, int mode)
 {
@@ -252,17 +226,23 @@ static int cx20810_hw_init()
     return 0;
 }
 
+#define GPIO57_3_3V_PIN (GPIO57|0x80000000)   //ADC POWER
+#define GPIO96_LDO_PIN (GPIO96|0x80000000)   //ADC POWER
+#define GPIO99_ADC_RST1_PIN (GPIO99|0x80000000)   //low power 3b
+#define GPIO58_ADC_RST2_PIN (GPIO58|0x80000000)   //high power 35
+#define GPIO95_FPGA_DAT_PIN (GPIO95|0x80000000)    
+
 static int i2c_driver_cx20810_probe(struct i2c_client * client, const struct i2c_device_id* id)
 {
 	printk("Timothy:cx20810.c->i2c_driver_cx20810_probe(),client->addr=0x%x  %d\n",client->addr,client->adapter->nr);
 	
   if(client->adapter->nr == 3 && client->addr == i2c_cx20810_addr[0])
     {
-            mt_set_gpio_out(GPIO128_ADC_RST2_PIN,1);
+            mt_set_gpio_out(GPIO58_ADC_RST2_PIN,1);
 	 mdelay(30);
-	  mt_set_gpio_out(GPIO128_ADC_RST2_PIN,0);
+	  mt_set_gpio_out(GPIO58_ADC_RST2_PIN,0);
 	  mdelay(30);
-  	  mt_set_gpio_out(GPIO128_ADC_RST2_PIN,1);
+  	  mt_set_gpio_out(GPIO58_ADC_RST2_PIN,1);
 	  mdelay(30);
            g_client_cx20810[0] = client;
           cx20810_init(0, CX20810_NORMAL_MODE);
@@ -270,7 +250,7 @@ static int i2c_driver_cx20810_probe(struct i2c_client * client, const struct i2c
     }
     else if(client->adapter->nr == 3 && client->addr == i2c_cx20810_addr[1])  //0x3b--low vol
     {       
- 	   mt_set_gpio_out(GPIO171_ADC_RST1_PIN,1);
+ 	   mt_set_gpio_out(GPIO99_ADC_RST1_PIN,1);
 	   mdelay(30);
             g_client_cx20810[1] = client;
             cx20810_init(1, CX20810_NORMAL_MODE);
@@ -311,55 +291,6 @@ static int i2c_driver_cx20810_detect(struct i2c_client * client, struct i2c_boar
     }
     return ENODEV;
 }
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#ifdef CONFIG_EARLYSUSPEND
-int yyd_lock_system=false;
-
-  static void reset_cx2008(void)
-{
-	mt_set_gpio_out(GPIO128_ADC_RST2_PIN,1);
-  	 mdelay(30);
-	mt_set_gpio_out(GPIO128_ADC_RST2_PIN,0);
-	mdelay(30);
-	mt_set_gpio_out(GPIO128_ADC_RST2_PIN,1);
-	mdelay(30);
-	cx20810_init(0, CX20810_NORMAL_MODE);
-	  printk("111add35=%x\n",ADC_i2c_read_reg(0x10,0) );
-
-	  mt_set_gpio_out(GPIO171_ADC_RST1_PIN,1);
-	  mdelay(30);
-	  mt_set_gpio_out(GPIO171_ADC_RST1_PIN,0);
-	   mdelay(30);
-	   mt_set_gpio_out(GPIO171_ADC_RST1_PIN,1);
-	   mdelay(30);  
-            cx20810_init(1, CX20810_NORMAL_MODE);
-	printk("111add3b=%x\n",ADC_i2c_read_reg(0x10,1) );
-
-}
-  static void m_suspend( struct early_suspend *h )
-  {
-  	if(yyd_lock_system)
-	 mt_set_gpio_out(GPIO44_3_3V_PIN,0);
-  }
-  
-  static void m_resume( struct early_suspend *h )
-  {
- 	 if(yyd_lock_system)
- 	 {
- 	 mt_set_gpio_out(GPIO44_3_3V_PIN,1);
-	 mdelay(10);
-	reset_cx2008();
- 	 }
-  }
-  
-  static struct early_suspend misc_early_suspend_handler = {
-	  .level = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1,
-	  .suspend = m_suspend,
-	  .resume = m_resume,
-  };
-  
-#endif
-#endif
 
 static struct i2c_driver i2c_driver_cx20810=
 {
@@ -387,35 +318,29 @@ static int __init i2c_driver_cx20810_init(void)
 	 {
 	 hwPowerOn(MT6328_POWER_LDO_VMC, VOL_3300, "3v3msdc" );//
 
-	  mt_set_gpio_mode(GPIO44_3_3V_PIN, GPIO_MODE_00);  
-	 mt_set_gpio_dir(GPIO44_3_3V_PIN, GPIO_DIR_OUT) ;   
-	 mt_set_gpio_out(GPIO44_3_3V_PIN,1);
+	  mt_set_gpio_mode(GPIO57_3_3V_PIN, GPIO_MODE_00);  
+	 mt_set_gpio_dir(GPIO57_3_3V_PIN, GPIO_DIR_OUT) ;   
+	 mt_set_gpio_out(GPIO57_3_3V_PIN,1);
 
-	 mt_set_gpio_mode(GPIO60_LDO_PIN, GPIO_MODE_00);  
-	 mt_set_gpio_dir(GPIO60_LDO_PIN, GPIO_DIR_OUT) ;   
-	 mt_set_gpio_out(GPIO60_LDO_PIN,1);
+	 mt_set_gpio_mode(GPIO96_LDO_PIN, GPIO_MODE_00);  
+	 mt_set_gpio_dir(GPIO96_LDO_PIN, GPIO_DIR_OUT) ;   
+	 mt_set_gpio_out(GPIO96_LDO_PIN,1);
 
-	 mt_set_gpio_mode(GPIO171_ADC_RST1_PIN, GPIO_MODE_00);  
-	 mt_set_gpio_dir(GPIO171_ADC_RST1_PIN, GPIO_DIR_OUT) ;   
-	 mt_set_gpio_out(GPIO171_ADC_RST1_PIN,0);
+	 mt_set_gpio_mode(GPIO99_ADC_RST1_PIN, GPIO_MODE_00);  
+	 mt_set_gpio_dir(GPIO99_ADC_RST1_PIN, GPIO_DIR_OUT) ;   
+	 mt_set_gpio_out(GPIO99_ADC_RST1_PIN,0);
  
-	 mt_set_gpio_mode(GPIO128_ADC_RST2_PIN, GPIO_MODE_00);	
-	 mt_set_gpio_dir(GPIO128_ADC_RST2_PIN, GPIO_DIR_OUT) ;	 
-	 mt_set_gpio_out(GPIO128_ADC_RST2_PIN,0);
+	 mt_set_gpio_mode(GPIO58_ADC_RST2_PIN, GPIO_MODE_00);	
+	 mt_set_gpio_dir(GPIO58_ADC_RST2_PIN, GPIO_DIR_OUT) ;	 
+	 mt_set_gpio_out(GPIO58_ADC_RST2_PIN,0);
 
-	  mt_set_gpio_mode(GPIO129_FPGA_DAT_PIN, GPIO_MODE_00);	
-	 mt_set_gpio_dir(GPIO129_FPGA_DAT_PIN, GPIO_DIR_OUT) ;	 
-	 mt_set_gpio_out(GPIO129_FPGA_DAT_PIN,0);
+	  mt_set_gpio_mode(GPIO95_FPGA_DAT_PIN, GPIO_MODE_00);	
+	 mt_set_gpio_dir(GPIO95_FPGA_DAT_PIN, GPIO_DIR_OUT) ;	 
+	 mt_set_gpio_out(GPIO95_FPGA_DAT_PIN,0);
  
 	 a=0;
 	 }
   i2c_register_board_info(3, cx20810_dev, 2);
-
-	#ifdef CONFIG_HAS_EARLYSUSPEND
-	#ifdef CONFIG_EARLYSUSPEND
-	register_early_suspend(&misc_early_suspend_handler);
-	#endif
-	#endif
 
     return i2c_add_driver(&i2c_driver_cx20810);
 

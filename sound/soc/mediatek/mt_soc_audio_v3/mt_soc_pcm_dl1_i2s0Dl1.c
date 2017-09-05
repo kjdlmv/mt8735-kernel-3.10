@@ -301,7 +301,6 @@ static struct snd_pcm_hw_constraint_list constraints_sample_rates =
 static int mtk_pcm_I2S0dl1_open(struct snd_pcm_substream *substream)
 {
     int ret = 0;
-	printk("daviekuo %s  %s \n", __func__, __TIME__);
     struct snd_pcm_runtime *runtime = substream->runtime;
     AfeControlSramLock();
     if (GetSramState() == SRAM_STATE_FREE)
@@ -358,7 +357,8 @@ static int mtk_pcm_I2S0dl1_open(struct snd_pcm_substream *substream)
 
 static int mtk_pcm_I2S0dl1_close(struct snd_pcm_substream *substream)
 {
-    
+    printk("%s \n", __func__);
+
     if (mPrepareDone == true)
     {
         // stop DAC output
@@ -434,7 +434,7 @@ static int mtk_pcm_I2S0dl1_prepare(struct snd_pcm_substream *substream)
             mI2SWLen = Soc_Aud_I2S_WLEN_WLEN_16BITS;
         }
 
-        //SetSampleRate(Soc_Aud_Digital_Block_MEM_I2S,  runtime->rate);		//modified by daviekuo
+       // SetSampleRate(Soc_Aud_Digital_Block_MEM_I2S,  runtime->rate);
 
         // I2S out Setting
         u32AudioI2S = SampleRateTransform(runtime->rate) << 8;
@@ -487,7 +487,6 @@ static int mtk_pcm_I2S0dl1_prepare(struct snd_pcm_substream *substream)
         EnableAfe(true);
         mPrepareDone = true;
     }
-	
     return 0;
 }
 
@@ -529,7 +528,7 @@ static int mtk_pcm_I2S0dl1_start(struct snd_pcm_substream *substream)
 
 static int mtk_pcm_I2S0dl1_trigger(struct snd_pcm_substream *substream, int cmd)
 {
-    printk("daviekuo %s %d cmd = %d\n", __func__, __LINE__, cmd);
+    //printk("mtk_pcm_I2S0dl1_trigger cmd = %d\n", cmd);
 
     switch (cmd)
     {
@@ -540,7 +539,6 @@ static int mtk_pcm_I2S0dl1_trigger(struct snd_pcm_substream *substream, int cmd)
         case SNDRV_PCM_TRIGGER_SUSPEND:
             return mtk_pcm_I2S0dl1_stop(substream);
     }
-	
     return -EINVAL;
 }
 

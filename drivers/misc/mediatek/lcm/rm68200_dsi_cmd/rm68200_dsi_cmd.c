@@ -84,7 +84,7 @@ static struct LCM_setting_table lcm_initialization_setting[] = {
 	
 	{0xFE, 1,{0x01}},
 	
-//	{0x46, 1,{0x80}},//58
+	{0x46, 1,{0x80}},//58
 	
 	{0x00, 1,{0x0A}},
 	
@@ -112,7 +112,7 @@ static struct LCM_setting_table lcm_initialization_setting[] = {
 	
 	{0x1A, 1,{0x06}},
 	
-	{0x46, 1,{0x88}},//58
+	
 	
 	{0x52, 1,{0x78}},
 	
@@ -751,8 +751,8 @@ static void lcm_get_params(LCM_PARAMS *params)
 		params->dsi.PS=LCM_PACKED_PS_24BIT_RGB888;
 
 		params->dsi.vertical_sync_active				= 2;
-		params->dsi.vertical_backporch					= 16;
-		params->dsi.vertical_frontporch					= 16;
+		params->dsi.vertical_backporch					= 8;
+		params->dsi.vertical_frontporch					= 8;
 		params->dsi.vertical_active_line				= FRAME_HEIGHT; 
 
 		params->dsi.horizontal_sync_active				= 8;
@@ -763,7 +763,7 @@ static void lcm_get_params(LCM_PARAMS *params)
 		// Bit rate calculation
 		//params->dsi.pll_div1=37;		// fref=26MHz, fvco=fref*(div1+1)	(div1=0~63, fvco=500MHZ~1GHz)
 		//params->dsi.pll_div2=1; 		// div2=0~15: fout=fvo/(2*div2)
-		params->dsi.PLL_CLOCK = 450;
+		params->dsi.PLL_CLOCK = 400;
 }
 
 static unsigned int lcm_compare_id(void);

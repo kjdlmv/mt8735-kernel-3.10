@@ -248,9 +248,8 @@ extern LCM_DRIVER  jd9161ba_wvga_dsi_vdo_drv;
 extern LCM_DRIVER  jd9161ba_dsi_vdo_ips;
 extern LCM_DRIVER  rm68200_dsi_lcm_drv;
 extern LCM_DRIVER jd9365_dsi_hd_drv;
+extern LCM_DRIVER jd9366_ivo8_lcm_drv;
 
-#define RM68200_DSI
-#define JD9365_DSI_HD
 LCM_DRIVER* lcm_driver_list[] =
 {
 #if defined(OTM1284A_HD720_DSI_VDO_TM)
@@ -259,17 +258,16 @@ LCM_DRIVER* lcm_driver_list[] =
 #if defined(OTM1285A_HD720_DSI_VDO_TM)
 	&otm1285a_hd720_dsi_vdo_tm_lcm_drv,
 #endif
-/*
-//#if defined(HX8379C_WVGA_DSI_VDO)
+#if defined(JD9161BA_WVGA_DSI_VDO_DRV)
+	&jd9161ba_wvga_dsi_vdo_drv,
+#endif
+#if defined(HX8379C_WVGA_DSI_VDO)
 	&hx8379c_wvga_dsi_vdo_drv,
-//#endif
-//#if defined(JD9161BA_WVGA_DSI_VDO_DRV)
-//	& jd9161ba_wvga_dsi_vdo_drv,
-//#endif
-//#if defined(jd9161ba_dsi_vdo_ips)
+#endif
+#if defined(jd9161ba_dsi_vdo_ips)
 	&jd9161ba_dsi_vdo_ips,
-//#endif
-*/
+#endif
+
 #if defined(S6E3FA2_FHD1080_DSI_VDO)
 	&s6e3fa2_fhd1080_dsi_vdo_lcm_drv,
 #endif
@@ -1130,12 +1128,15 @@ LCM_DRIVER* lcm_driver_list[] =
 	&st7789h2_dbi_lcm_drv,
 #endif
 
-#if defined(RM68200_DSI)
+#if defined(RM68200_DSI_CMD)
 	&rm68200_dsi_lcm_drv,
 #endif
 
 #if defined(JD9365_DSI_HD)
 	&jd9365_dsi_hd_drv,
+#endif
+#if defined(JD9366_IVO8)
+	&jd9366_ivo8_lcm_drv,
 #endif
 };
 

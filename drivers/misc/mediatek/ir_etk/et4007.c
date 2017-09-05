@@ -82,7 +82,7 @@
 #define ET4007_SCL_GPIO			(GPIO66|0x80000000)  
 #define ET4007_SDA_GPIO			(GPIO65|0x80000000)
 #define ET4007_BUSY_GPIO		(GPIO5|0x80000000)
-#define ET4007_POWER_GPIO		(GPIO57|0x80000000)
+#define ET4007_POWER_GPIO		(GPIO68|0x80000000)
 #else
 
 #define ET4007_SCL_GPIO			(GPIO54|0x80000000)//(GPIO66|0x80000000)  
@@ -136,20 +136,18 @@ void set_pull(void )
 
  void sub_power(int val)
 {
-	mt_set_gpio_mode((GPIO57|0x80000000), GPIO_MODE_00);  
-	mt_set_gpio_dir((GPIO57|0x80000000), GPIO_DIR_OUT);
-	mt_set_gpio_mode((GPIO58|0x80000000), GPIO_MODE_00);  
-	mt_set_gpio_dir((GPIO58|0x80000000), GPIO_DIR_OUT);
-
+	mt_set_gpio_mode((GPIO68|0x80000000), GPIO_MODE_00);  
+	mt_set_gpio_dir((GPIO68|0x80000000), GPIO_DIR_OUT);
+	
        if(val == 1)
        	{	
-	 mt_set_gpio_out((GPIO57|0x80000000), 1);	
-	 mt_set_gpio_out((GPIO58|0x80000000), 1);
+	 mt_set_gpio_out((GPIO68|0x80000000), 1);	
+	
        	}
 	  else
 	  {
-		 mt_set_gpio_out((GPIO57|0x80000000), 0);	 
-		 mt_set_gpio_out((GPIO58|0x80000000), 0);
+		 mt_set_gpio_out((GPIO68|0x80000000), 0);	 
+		
 	  } 
 
 }

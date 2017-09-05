@@ -957,6 +957,9 @@ static void pchr_sw_cv_charing_current_check(void)
 		battery_log(BAT_LOG_CRTI, "[BATTERY] Sw CV set charging current Error!\n");
 }
 
+extern void EN_charger_IC(void);
+extern void DIS_charger_IC(void);
+
 static void pchr_turn_on_charging(void)
 {
 #if !defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
@@ -1061,6 +1064,7 @@ PMU_STATUS BAT_PreChargeModeAction(void)
 #else
 	{
 		kal_bool charging_enable = KAL_FALSE;
+		DIS_charger_IC();
 
 		/*Charging 9s and discharging 1s : start */
 		battery_charging_control(CHARGING_CMD_ENABLE, &charging_enable);
@@ -1070,6 +1074,7 @@ PMU_STATUS BAT_PreChargeModeAction(void)
 
 	charging_current_calibration();
 	pchr_turn_on_charging();
+	EN_charger_IC();
 
 	return PMU_STATUS_OK;
 }
@@ -1097,6 +1102,7 @@ PMU_STATUS BAT_ConstantCurrentModeAction(void)
 #else
 	{
 		kal_bool charging_enable = KAL_FALSE;
+		DIS_charger_IC();
 
 		/* Charging 9s and discharging 1s : start */
 		battery_charging_control(CHARGING_CMD_ENABLE, &charging_enable);
@@ -1107,6 +1113,7 @@ PMU_STATUS BAT_ConstantCurrentModeAction(void)
 	charging_current_calibration();
 
 	pchr_turn_on_charging();
+	EN_charger_IC();
 
 	return PMU_STATUS_OK;
 }

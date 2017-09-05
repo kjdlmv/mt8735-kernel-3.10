@@ -960,10 +960,10 @@
 		MT_SOC_UL1_PCM@0x11220000 {
 			compatible = "mediatek,mt_soc_pcm_capture";
 		};
+
 		MT_SOC_5MIC_PCM@0x11220000 {
 			compatible = "mediatek,mt_soc_pcm_capture_5mic";
 		};
-
 		MT_SOC_VOICE_MD1@0x11220000 {
 			compatible = "mediatek,mt_soc_pcm_voice_md1";
 		};

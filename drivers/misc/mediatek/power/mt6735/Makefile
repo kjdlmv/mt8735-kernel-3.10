@@ -5,7 +5,7 @@ obj-$(CONFIG_MTK_PMIC)         += pmic.o upmu_common.o pmic_auxadc.o pmic_chr_ty
 ifeq ($(CONFIG_MTK_PMIC_DVT_SUPPORT),y)
      obj-$(CONFIG_MTK_PMIC)     += pmic_dvt.o
 endif
-
+obj-y +=charger_aw3215.o
 obj-$(CONFIG_MTK_SMART_BATTERY) += battery_meter_hal.o 
 
 ifeq ($(CONFIG_MTK_BQ24261_SUPPORT),y)

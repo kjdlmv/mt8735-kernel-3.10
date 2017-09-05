@@ -139,13 +139,13 @@ enum hrtimer_restart delay_hrtimer_func(struct hrtimer *timer)
 		mt_eint_set_hw_debounce(CUST_EINT_CHR_STAT_NUM, 100);
 		mt_eint_registration(CUST_EINT_CHR_STAT_NUM, CUST_EINTF_TRIGGER_FALLING, touchsersor_eint0_func, 0);			
 		mt_eint_unmask(CUST_EINT_CHR_STAT_NUM);
-
+/*
 	ktime_t ktime;
 	ktime = ktime_set(1, 0);	
 	hrtimer_init(&dance_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	dance_timer.function = commit_delay_hrtimer_func;
 	hrtimer_start(&dance_timer, ktime, HRTIMER_MODE_REL);
-
+*/
 	printk("delay_hrtimer_func	finish-------------\n");
 
 	return HRTIMER_NORESTART;
@@ -162,15 +162,15 @@ static int __init touchsersor_init(void)
 	
 	switch_dev_register(&touchsensor_dev);
 
-	 mt_set_gpio_mode((GPIO78 | 0x80000000), GPIO_MODE_00); 
-  	 mt_set_gpio_dir((GPIO78 | 0x80000000), GPIO_DIR_OUT) ;
-	 mt_set_gpio_out((GPIO78 | 0x80000000), 1);	
+	 mt_set_gpio_mode((GPIO67 | 0x80000000), GPIO_MODE_00);  //pir power
+  	 mt_set_gpio_dir((GPIO67 | 0x80000000), GPIO_DIR_OUT) ;
+	 mt_set_gpio_out((GPIO67 | 0x80000000), 1);	
 
 				
 				
 	ktime_t ktime;
 
-	ktime = ktime_set(25, 0);	 //60s later  register ext_int
+	ktime = ktime_set(5, 0);	 //60s later  register ext_int
 	hrtimer_init(&timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	timer.function = delay_hrtimer_func;
 	hrtimer_start(&timer, ktime, HRTIMER_MODE_REL);
@@ -187,10 +187,7 @@ static void __exit touchsersor_exit(void)
 module_init(touchsersor_init);
 module_exit(touchsersor_exit);
 
-//MODULE_AUTHOR("Yongyida");
-//MODULE_DESCRIPTION("motor driver");
-//MODULE_LICENSE("GPL");
 
-//MODULE_AUTHOR("yongyida@yongyida.com>");
-//MODULE_DESCRIPTION("touchsersor driver");
-//MODULE_LICENSE("GPL");
+MODULE_AUTHOR("yongyida@yongyida.com>");
+MODULE_DESCRIPTION("touchsersor driver");
+MODULE_LICENSE("GPL");

@@ -808,7 +808,6 @@ static kal_int32 read_adc_v_bat_sense(void *data)
 	*(kal_int32*)(data) = PMIC_IMM_GetOneChannelValue(MT6328_AUX_ISENSE_AP,*(kal_int32*)(data),1);
 #else
     *(kal_int32*)(data) = PMIC_IMM_GetOneChannelValue(MT6328_AUX_BATSNS_AP,*(kal_int32*)(data),1);
-	printk("daviekuo  read_adc_v_bat_sense!\n");
 #endif
 #endif
 

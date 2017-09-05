@@ -47,7 +47,6 @@
 #define TPD_VELOCITY_CUSTOM_X 12
 #define TPD_VELOCITY_CUSTOM_Y 16
 //#define TPD_AUTO_UPGRADE_SUPPORT
-#define TPD_CLOSE_POWER_IN_SLEEP
 
 #define TPD_DELAY                (2*HZ/100)
 //mofidy at 20120419 by zhu

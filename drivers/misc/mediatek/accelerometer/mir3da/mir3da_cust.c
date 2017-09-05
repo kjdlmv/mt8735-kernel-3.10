@@ -29,10 +29,6 @@
 #include <linux/platform_device.h>
 #include <asm/atomic.h>
 
-#include <linux/wait.h>
-#include <linux/wakelock.h>
-#include<linux/kthread.h>
-
 #include <cust_acc.h>
 #include <linux/hwmsensor.h>
 #include <linux/hwmsen_dev.h>
@@ -439,37 +435,12 @@ static int mir3da_setPowerMode(struct i2c_client *client, bool enable)
     return ret;
 }
 /*----------------------------------------------------------------------------*/
-#define uint08 unsigned char
-extern int Seting_Image_Rotation(int val);
-extern int Setting_Image_Correct(uint08 m_throw,uint08 l_throw,uint08 m_DMD,uint08 l_DMD,uint08 l_PP,uint08 m_PP);
-extern bool hdmi_open_flag;
-DECLARE_WAIT_QUEUE_HEAD(gsensor_thread_wq);
-static bool gsensor_correct_flag=0;
-static int correct_val=0;
-bool gsensor_data_switch=true;
-#define GPIO_GSENSOR_POWER (GPIO125 |0x80000000)
-
-int gsensor_reset_by_app(void)
-{
-	if(hdmi_open_flag == true)
-		{
-		 mt_set_gpio_mode(GPIO_GSENSOR_POWER, GPIO_MODE_00);	
-		mt_set_gpio_dir(GPIO_GSENSOR_POWER, GPIO_DIR_OUT) ; 
-		mt_set_gpio_out(GPIO_GSENSOR_POWER,0);
-		mdelay(500);
-		mt_set_gpio_out(GPIO_GSENSOR_POWER,1);
-		mdelay(500);
-		}
-	return mir3da_chip_resume(mir_handle);	
-}
-
 static int mir3da_readSensorData(struct i2c_client *client, char *buf)
 {    
     struct mir3da_i2c_data *obj = (struct mir3da_i2c_data*)i2c_get_clientdata(client);
     unsigned char databuf[20];
     int acc[MIR3DA_AXES_NUM];
     int res = 0;
-   static int i=0,temp=0,j=0;	
     memset(databuf, 0, sizeof(unsigned char)*10);
 
     if(NULL == buf)
@@ -495,7 +466,6 @@ static int mir3da_readSensorData(struct i2c_client *client, char *buf)
     if(res = mir3da_read_data(client, &(obj->data[MIR3DA_AXIS_X]),&(obj->data[MIR3DA_AXIS_Y]),&(obj->data[MIR3DA_AXIS_Z]))) 
     {        
         MI_ERR("I2C error: ret value=%d", res);
-	gsensor_reset_by_app();///add lifei
         return -3;
     }
     else
@@ -533,79 +503,7 @@ static int mir3da_readSensorData(struct i2c_client *client, char *buf)
         acc[MIR3DA_AXIS_Z] = acc[MIR3DA_AXIS_Z] * GRAVITY_EARTH_1000 / obj->reso->sensitivity;        
 
         sprintf(buf, "%04x %04x %04x", acc[MIR3DA_AXIS_X], acc[MIR3DA_AXIS_Y], acc[MIR3DA_AXIS_Z]);
-#if 1
-	if(hdmi_open_flag ==true)  //close guang ji
-	{
-	  j=0;
-	  i=0;
-	}
-         else //open guang ji
-         	{
-			if((i== 0 ||i==2)&& (abs(acc[MIR3DA_AXIS_Z])<4800))
-				{
-					if(Seting_Image_Rotation(0x06)>0)
-					{
-					i=1;
-					correct_val =0xff &(255-((abs(acc[MIR3DA_AXIS_Z])-1500)/140));
-					gsensor_correct_flag=1;
-					wake_up(&gsensor_thread_wq);
-
-					}
-				}
-			else if((i==0||i==1) && (abs(acc[MIR3DA_AXIS_Z])>7500))
-				{
-					if(Seting_Image_Rotation(0x00)>0)
-					{
-					i=2;
-					correct_val =0xff &(39-((abs(acc[MIR3DA_AXIS_Z])-4800)/250));
-					gsensor_correct_flag=1;
-					wake_up(&gsensor_thread_wq);
-					}
-				}	
-			
-			if(j==0 &&( (abs(acc[MIR3DA_AXIS_Z])>9600) || (abs(acc[MIR3DA_AXIS_Z])<1500)))
-				{
-				       // if(Setting_Image_Correct(0,0,0,0,0,0)>0)
-					j=1;
-					   correct_val=0;
-					   gsensor_correct_flag=1;
-					   wake_up(&gsensor_thread_wq);
-				}
-			else if(abs(acc[MIR3DA_AXIS_Z])>7600 && abs(abs(acc[MIR3DA_AXIS_Z]) -temp)>350)
-				{
-					j=0;
-					//Setting_Image_Correct(0,0,0,0,0,((abs(acc[MIR3DA_AXIS_Z])-7000)/100)+219);
-					temp=abs(acc[MIR3DA_AXIS_Z]);
-					
-					correct_val =0xff &(((abs(acc[MIR3DA_AXIS_Z])-7000)/100)+219);
-					gsensor_correct_flag=1;
-					wake_up(&gsensor_thread_wq);
-				}
-			else if(i==1 && abs(acc[MIR3DA_AXIS_Z])>1500 &&abs(acc[MIR3DA_AXIS_Z])<7500 && abs(abs(acc[MIR3DA_AXIS_Z]) -temp)>350)
-				{
-					j=0;
-					//Setting_Image_Correct(0,0,0,0,0,((abs(acc[MIR3DA_AXIS_Z])-7000)/100)+219);
-					temp=abs(acc[MIR3DA_AXIS_Z]);
-					
-					correct_val =0xff &(255-((abs(acc[MIR3DA_AXIS_Z])-1500)/140));
-					gsensor_correct_flag=1;
-					wake_up(&gsensor_thread_wq);
-				}
-
-			else if(i==2 && abs(acc[MIR3DA_AXIS_Z])>4800 &&abs(acc[MIR3DA_AXIS_Z])<7600 && abs(abs(acc[MIR3DA_AXIS_Z]) -temp)>350)
-				{
-					j=0;
-					//Setting_Image_Correct(0,0,0,0,0,((abs(acc[MIR3DA_AXIS_Z])-7000)/100)+219);
-					temp=abs(acc[MIR3DA_AXIS_Z]);
-					
-					correct_val =0xff &(39-((abs(acc[MIR3DA_AXIS_Z])-4800)/250));
-					gsensor_correct_flag=1;
-					wake_up(&gsensor_thread_wq);
-				}
-			
-         	}
-#endif	
-
+        
         MI_DATA( "mir3da data mg: x= %d, y=%d, z=%d\n",  acc[MIR3DA_AXIS_X],acc[MIR3DA_AXIS_Y],acc[MIR3DA_AXIS_Z]); 
     }
     
@@ -1031,23 +929,6 @@ static struct driver_attribute *mir3da_attributes[] = {
 #endif     
 };
 /*----------------------------------------------------------------------------*/
-//------------------------------------------------------------------//
-extern bool hdmi_open_flag;
-int gsensor_buf[3];
-static  int correct_thread_kthread(void *x)
-{
-	while(1)
-	{
-		wait_event(gsensor_thread_wq, ((gsensor_correct_flag == true)&&(hdmi_open_flag==false)));
-		gsensor_correct_flag=0;
-		msleep(500);
-		Setting_Image_Correct(0,0,0,0,0,correct_val);
-		printk("correct_thread_kthread\n");
-	}
-
-	return 0;
-}
-//------------------------------------------------------------------//
 static int mir3da_create_attr(struct device_driver *driver) 
 {
     int idx, err = 0;
@@ -1300,22 +1181,9 @@ static int mir3da_operate(void* self, uint32_t command, void* buff_in, int size_
                 gsensor_data = (hwm_sensor_data *)buff_out;
                
                 mir3da_readSensorData(priv->client, buff);  
-
-		 sscanf(buff, "%x %x %x", &gsensor_buf[0], 
-		 &gsensor_buf[1], &gsensor_buf[2]);
-			//printk("daviekuo gsensor: buff = %s\n",  buff);
-			//printk("daviekuo gsensor: gsensor_buf[0] %d gsensor_buf[1] %d gsensor_buf[2] %d\n",gsensor_buf[0], gsensor_buf[1], gsensor_buf[2]);
-	        //if(gsensor_data_switch)
-				//memset(buff,0,sizeof(buff));
-		   
-                sscanf(buff, "%x %x %x", &gsensor_data->values[0],
+                sscanf(buff, "%x %x %x", &gsensor_data->values[0], 
                 &gsensor_data->values[1], &gsensor_data->values[2]);
-				if(gsensor_data_switch){
-					gsensor_data->values[0] = 9700;
-					gsensor_data->values[1] = 0;
-					//gsensor_data->values[2] = 10;
-				}
-				//printk("daviekuo gsensor: gsensor_data->values[0] %d gsensor_data->values[1] %d gsensor_data->values[2] %d\n",gsensor_data->values[0], gsensor_data->values[1], gsensor_data->values[2]);
+                
                 gsensor_data->status = SENSOR_STATUS_ACCURACY_MEDIUM;                
                 gsensor_data->value_divide = 1000;                
             }
@@ -1479,8 +1347,6 @@ static int mir3da_probe(struct i2c_client *client, const struct i2c_device_id *i
 	register_early_suspend(&obj->early_drv);
 #endif
     mir3da_init_flag = 0;
-
-	kthread_run(correct_thread_kthread, NULL, "Gsensor_Correct");
 
     return result;
 exit_create_attr_failed:

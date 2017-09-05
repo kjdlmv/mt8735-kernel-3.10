@@ -105,7 +105,7 @@ static struct snd_pcm_hardware mtk_capture_hardware =
 
 static void StopAudioCaptureHardware(struct snd_pcm_substream *substream)
 {
-    printk("5mic--->StopAudioCaptureHardware \n");
+    printk("StopAudioCaptureHardware \n");
 
     // here to set interrupt
 	
@@ -116,16 +116,6 @@ static void StopAudioCaptureHardware(struct snd_pcm_substream *substream)
 		    if (GetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_IN_2) == false)
 		    {
 				DisableALLbySampleRate(Samp_96);
-				
-				printk("5mic--->StopAudioCaptureHardware APLL disable\n");
-
-		//EnableI2SDivPower(AUDIO_APLL1_DIV0, false); 
-		//EnableI2SDivPower(AUDIO_APLL2_DIV0, false);
-		EnableI2SDivPower(AUDIO_APLL12_DIV1, false); 
-		//EnableI2SDivPower(AUDIO_APLL12_DIV2 , false); 
-		//EnableI2SDivPower(AUDIO_APLL12_DIV3 , false);
-		//EnableI2SDivPower(AUDIO_APLL12_DIV4 , false);
-
 				Set2ndI2SInEnable(false);	
 		    }
 
@@ -172,13 +162,13 @@ static void ConfigAdcI2S(struct snd_pcm_substream *substream)
 static void StartAudioCaptureHardware(struct snd_pcm_substream *substream)
 {
 
-    printk("5mic--->StartAudioCaptureHardware  substream->name=%s ,=%d\n",substream->name,substream->runtime->rate);
+    printk("StartAudioCaptureHardware  substream->name=%s ,=%d\n",substream->name,substream->runtime->rate);
 	AudioDigtalI2S m2ndI2SInAttribute;
 	AudioDigitalPCM p_modem_pcm_attribute;
 	uint32 reg_pcm_intf_con1 = 0,div;
 	uint32 InterfaceType, eFetchFormat;
 	uint32 ConnectionFormat,  Output;
-	uint32 Aud_block,MclkDiv0;
+	uint32 Aud_block;
 
       if(substream->runtime->rate == Samp_96)
       	{
@@ -220,18 +210,7 @@ static void StartAudioCaptureHardware(struct snd_pcm_substream *substream)
 	   m2ndI2SInAttribute.mI2S_HDEN =Soc_Aud_LOW_JITTER_CLOCK;
 
 	   EnableALLbySampleRate(substream->runtime->rate);//enable clk;
-
-	//   EnableI2SDivPower(AUDIO_APLL1_DIV0, true); 
-	 //  EnableI2SDivPower(AUDIO_APLL2_DIV0, true);	   
-	   EnableI2SDivPower(AUDIO_APLL12_DIV1, true); 
-	  // EnableI2SDivPower(AUDIO_APLL12_DIV2 , true); 
-	  // EnableI2SDivPower(AUDIO_APLL12_DIV3 , true);
-	 //  EnableI2SDivPower(AUDIO_APLL12_DIV4 , true);
-	   MclkDiv0 = SetCLkMclk(Soc_Aud_I2S0, m2ndI2SInAttribute.mI2S_SAMPLERATE); //select I2S
-     SetCLkBclk(MclkDiv0,  m2ndI2SInAttribute.mI2S_SAMPLERATE, 2, Soc_Aud_I2S_WLEN_WLEN_32BITS); 
-      Afe_Set_Reg(AUDIO_CLK_AUDDIV_0, 0x30000100, AFE_MASK_ALL);//
-       Afe_Set_Reg(AUDIO_CLK_AUDDIV_1, 0x00000007, AFE_MASK_ALL); 
-     
+	
 	   Set2ndI2SIn(&m2ndI2SInAttribute);
   
 	    Set2ndI2SInEnable(true);
@@ -336,7 +315,7 @@ static int mtk_capture_pcm_prepare(struct snd_pcm_substream *substream)
 static int mtk_capture_alsa_stop(struct snd_pcm_substream *substream)
 {
     //AFE_BLOCK_T *Vul_Block = &(VUL_Control_context->rBlock);
-    printk("5mic--->mtk_capture_alsa_stop \n");
+    printk("mtk_capture_alsa_stop \n");
     StopAudioCaptureHardware(substream);
 	if(substream->runtime->rate == Samp_96)
   	  RemoveMemifSubStream(Soc_Aud_Digital_Block_MEM_AWB,substream);
@@ -354,7 +333,7 @@ static snd_pcm_uframes_t mtk_capture_pcm_pointer(struct snd_pcm_substream *subst
     bool bIsOverflow = false;
     unsigned long flags;
     AFE_BLOCK_T *UL1_Block = &(VUL_Control_context->rBlock);
-    PRINTK_AUD_UL1("5mic--->mtk_capture_pcm_pointer Awb_Block->u4WriteIdx;= 0x%x \n", UL1_Block->u4WriteIdx);
+    PRINTK_AUD_UL1("mtk_capture_pcm_pointer Awb_Block->u4WriteIdx;= 0x%x \n", UL1_Block->u4WriteIdx);
     Auddrv_UL1_Spinlock_lock();
     spin_lock_irqsave(&VUL_Control_context->substream_lock, flags);
 	uint32 Aud_block,offset;
@@ -375,7 +354,7 @@ static snd_pcm_uframes_t mtk_capture_pcm_pointer(struct snd_pcm_substream *subst
         HW_Cur_ReadIdx = Align64ByteSize(Afe_Get_Reg(offset));
         if (HW_Cur_ReadIdx == 0)
         {
-            PRINTK_AUD_UL1("5mic--->[Auddrv] mtk_awb_pcm_pointer  HW_Cur_ReadIdx ==0 \n");
+            PRINTK_AUD_UL1("[Auddrv] mtk_awb_pcm_pointer  HW_Cur_ReadIdx ==0 \n");
             HW_Cur_ReadIdx = UL1_Block->pucPhysBufAddr;
         }
         HW_memory_index = (HW_Cur_ReadIdx - UL1_Block->pucPhysBufAddr);
@@ -395,11 +374,11 @@ static snd_pcm_uframes_t mtk_capture_pcm_pointer(struct snd_pcm_substream *subst
         if (UL1_Block->u4DataRemained > UL1_Block->u4BufferSize)
         {
             bIsOverflow = true;
-            printk("5mic--->mtk_capture_pcm_pointer buffer overflow u4DMAReadIdx:%x, u4WriteIdx:%x, u4DataRemained:%x, u4BufferSize:%x \n",
+            printk("mtk_capture_pcm_pointer buffer overflow u4DMAReadIdx:%x, u4WriteIdx:%x, u4DataRemained:%x, u4BufferSize:%x \n",
                    UL1_Block->u4DMAReadIdx, UL1_Block->u4WriteIdx, UL1_Block->u4DataRemained, UL1_Block->u4BufferSize);
         }
         
-        PRINTK_AUD_UL1("5mic--->[Auddrv] mtk_capture_pcm_pointer =0x%x HW_memory_index = 0x%x\n", HW_Cur_ReadIdx, HW_memory_index);
+        PRINTK_AUD_UL1("[Auddrv] mtk_capture_pcm_pointer =0x%x HW_memory_index = 0x%x\n", HW_Cur_ReadIdx, HW_memory_index);
         spin_unlock_irqrestore(&VUL_Control_context->substream_lock, flags);
         Auddrv_UL1_Spinlock_unlock();
 
@@ -420,7 +399,7 @@ static void SetAWBBuffer(struct snd_pcm_substream *substream,
 {
     struct snd_pcm_runtime *runtime = substream->runtime;
     AFE_BLOCK_T *pblock = &VUL_Control_context->rBlock;
-    printk("5mic--->SetAWBBuffer\n");
+    printk("SetAWBBuffer\n");
     pblock->pucPhysBufAddr =  runtime->dma_addr;
     pblock->pucVirtBufAddr =  runtime->dma_area;
     pblock->u4BufferSize = runtime->dma_bytes;
@@ -430,7 +409,7 @@ static void SetAWBBuffer(struct snd_pcm_substream *substream,
     pblock->u4DataRemained  = 0;
     pblock->u4fsyncflag     = false;
     pblock->uResetFlag      = true;
-    printk("5mic--->u4BufferSize = %d pucVirtBufAddr = %p pucPhysBufAddr = 0x%x\n",
+    printk("u4BufferSize = %d pucVirtBufAddr = %p pucPhysBufAddr = 0x%x\n",
            pblock->u4BufferSize, pblock->pucVirtBufAddr, pblock->pucPhysBufAddr);
     // set dram address top hardware
     Afe_Set_Reg(AFE_AWB_BASE , pblock->pucPhysBufAddr , 0xffffffff);
@@ -443,7 +422,7 @@ static void SetVULBuffer(struct snd_pcm_substream *substream,
 {
     struct snd_pcm_runtime *runtime = substream->runtime;
     AFE_BLOCK_T *pblock = &VUL_Control_context->rBlock;
-    printk("5mic--->SetVULBuffer\n");
+    printk("SetVULBuffer\n");
     pblock->pucPhysBufAddr =  runtime->dma_addr;
     pblock->pucVirtBufAddr =  runtime->dma_area;
     pblock->u4BufferSize = runtime->dma_bytes;
@@ -453,7 +432,7 @@ static void SetVULBuffer(struct snd_pcm_substream *substream,
     pblock->u4DataRemained  = 0;
     pblock->u4fsyncflag     = false;
     pblock->uResetFlag      = true;
-    printk("5mic--->u4BufferSize = %d pucVirtBufAddr = %p pucPhysBufAddr = 0x%x\n",
+    printk("u4BufferSize = %d pucVirtBufAddr = %p pucPhysBufAddr = 0x%x\n",
            pblock->u4BufferSize, pblock->pucVirtBufAddr, pblock->pucPhysBufAddr);
     // set dram address top hardware
     Afe_Set_Reg(AFE_VUL_BASE , pblock->pucPhysBufAddr , 0xffffffff);
@@ -467,7 +446,7 @@ static int mtk_capture_pcm_hw_params(struct snd_pcm_substream *substream,
     struct snd_pcm_runtime *runtime = substream->runtime;
     struct snd_dma_buffer *dma_buf = &substream->dma_buffer;
     int ret = 0;
-    printk("5mic--->mtk_capture_pcm_hw_params rate=%d\n",substream->runtime->rate);
+    printk("mtk_capture_pcm_hw_params rate=%d\n",substream->runtime->rate);
 
     dma_buf->dev.type = SNDRV_DMA_TYPE_DEV;
     dma_buf->dev.dev = substream->pcm->card->dev;
@@ -476,13 +455,13 @@ static int mtk_capture_pcm_hw_params(struct snd_pcm_substream *substream,
     if (mCaptureUseSram == true)
     {
         runtime->dma_bytes = params_buffer_bytes(hw_params);
-        printk("5mic--->mtk_capture_pcm_hw_params mCaptureUseSram dma_bytes = %zu \n", runtime->dma_bytes);
+        printk("mtk_capture_pcm_hw_params mCaptureUseSram dma_bytes = %zu \n", runtime->dma_bytes);
         substream->runtime->dma_area = (unsigned char *)Get_Afe_SramBase_Pointer();
         substream->runtime->dma_addr = Get_Afe_Sram_Phys_Addr();
     }
     else if (Capture_dma_buf->area)
     {
-        printk("5mic--->Capture_dma_buf = %p Capture_dma_buf->area = %p apture_dma_buf->addr = 0x%lx\n",
+        printk("Capture_dma_buf = %p Capture_dma_buf->area = %p apture_dma_buf->addr = 0x%lx\n",
             Capture_dma_buf, Capture_dma_buf->area, (long) Capture_dma_buf->addr);
         runtime->dma_bytes = params_buffer_bytes(hw_params);
         runtime->dma_area = Capture_dma_buf->area;
@@ -490,21 +469,21 @@ static int mtk_capture_pcm_hw_params(struct snd_pcm_substream *substream,
     }
     else
     {
-        printk("5mic--->mtk_capture_pcm_hw_params snd_pcm_lib_malloc_pages\n");
+        printk("mtk_capture_pcm_hw_params snd_pcm_lib_malloc_pages\n");
         ret =  snd_pcm_lib_malloc_pages(substream, params_buffer_bytes(hw_params));
     }
 	if(substream->runtime->rate == Samp_96)
    	             SetAWBBuffer(substream, hw_params);
 	else 
 		 SetVULBuffer(substream, hw_params);
-    printk("5mic--->dma_bytes = %zu dma_area = %p dma_addr = 0x%lx\n",
+    printk("dma_bytes = %zu dma_area = %p dma_addr = 0x%lx\n",
            substream->runtime->dma_bytes, substream->runtime->dma_area, (long)substream->runtime->dma_addr);
     return ret;
 }
 
 static int mtk_capture_pcm_hw_free(struct snd_pcm_substream *substream)
 {
-    printk("5mic--->mtk_capture_pcm_hw_free1 \n");
+    printk("mtk_capture_pcm_hw_free1 \n");
     if (Capture_dma_buf->area)
     {
         return 0;
@@ -529,7 +508,7 @@ static int mtk_capture_pcm_open(struct snd_pcm_substream *substream)
 {
     struct snd_pcm_runtime *runtime = substream->runtime;
     int ret = 0;
-	printk("5mic--->mtk_capture_pcm_open rate==%d ---%s\n",substream->runtime->rate,__TIME__);
+	printk("mtk_capture_pcm_open rate==%d \n",substream->runtime->rate);
 
 	//if(mic5_flag)
 	    substream->runtime->rate = Samp_96;
@@ -558,14 +537,14 @@ static int mtk_capture_pcm_open(struct snd_pcm_substream *substream)
     if (0)
     #endif
     {
-        printk("5mic--->mtk_capture_pcm_open use sram \n");
+        printk("mtk_capture_pcm_open use sram \n");
        mtk_capture_hardware.buffer_bytes_max = GetCaptureSramSize();
         SetSramState(SRAM_STATE_CAPTURE);
         mCaptureUseSram = true;
     }
     else
     {
-        printk("5mic--->mtk_capture_pcm_open use dram \n");
+        printk("mtk_capture_pcm_open use dram \n");
 	if(substream->runtime->rate == Samp_96)	
            {
             mtk_capture_hardware.buffer_bytes_max = AWB_MAX_BUFFER_SIZE;//AWB_MAX_BUFFER_SIZE;// UL1_MAX_BUFFER_SIZE;	
@@ -593,7 +572,7 @@ static int mtk_capture_pcm_open(struct snd_pcm_substream *substream)
     ret = snd_pcm_hw_constraint_integer(runtime, SNDRV_PCM_HW_PARAM_PERIODS);
     if (ret < 0)
     {
-        printk("5mic--->snd_pcm_hw_constraint_integer failed\n");
+        printk("snd_pcm_hw_constraint_integer failed\n");
     }
 
     if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
@@ -607,7 +586,7 @@ static int mtk_capture_pcm_open(struct snd_pcm_substream *substream)
 
     if (ret < 0)
     {
-        printk("5mic--->mtk_capture_pcm_close\n");
+        printk("mtk_capture_pcm_close\n");
         mtk_capture_pcm_close(substream);
         return ret;
     }
@@ -615,7 +594,7 @@ static int mtk_capture_pcm_open(struct snd_pcm_substream *substream)
     {
         AudDrv_Emi_Clk_On();
     }
-    printk("5mic--->mtk_capture_pcm_open return\n");
+    printk("mtk_capture_pcm_open return\n");
     return 0;
 }
 
@@ -638,13 +617,13 @@ static int mtk_capture_pcm_close(struct snd_pcm_substream *substream)
   }
   else
    AudDrv_ADC_Clk_Off();
-	 printk("5mic--->mtk_capture_pcm_close\n");
+	 printk("mtk_capture_pcm_close\n");
     return 0;
 }
 
 static int mtk_capture_alsa_start(struct snd_pcm_substream *substream)
 {
-    printk("5mic--->mtk_capture_alsa_start \n");
+    printk("mtk_capture_alsa_start \n");
 	if(substream->runtime->rate == Samp_96)	
 	    SetMemifSubStream(Soc_Aud_Digital_Block_MEM_AWB, substream);
 	else
@@ -683,17 +662,17 @@ static int mtk_capture_alsa_start(struct snd_pcm_substream *substream)
 #endif
     return 0;
 }
-#define GPIO_TDI_RST_PIN   (GPIO169|0x80000000)
+#define GPIO_TDI_RST_PIN   (GPIO101|0x80000000)
 extern void fpga_init_gpio(void);
 
 static int mtk_capture_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 {
-    printk("5mic--->mtk_capture_pcm_trigger cmd = %d,,%s\n", cmd,__TIME__);
+    printk("mtk_capture_pcm_trigger cmd = %d\n", cmd);
 	int ret;
     switch (cmd)
     {
         case SNDRV_PCM_TRIGGER_START:
- //       case SNDRV_PCM_TRIGGER_RESUME:
+       // case SNDRV_PCM_TRIGGER_RESUME:
 		if(substream->stream ==SNDRV_PCM_STREAM_CAPTURE)
 		{
 			if(substream->runtime->rate == Samp_96)
@@ -706,7 +685,7 @@ static int mtk_capture_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		}
             return mtk_capture_alsa_start(substream);
         case SNDRV_PCM_TRIGGER_STOP:
-  //      case SNDRV_PCM_TRIGGER_SUSPEND:		
+       // case SNDRV_PCM_TRIGGER_SUSPEND:		
 		ret=mtk_capture_alsa_stop(substream);
 		if(substream->stream ==SNDRV_PCM_STREAM_CAPTURE)
 		{
@@ -724,7 +703,7 @@ static bool CheckNullPointer(void *pointer)
 {
     if (pointer == NULL)
     {
-        printk("5mic--->CheckNullPointer pointer = NULL");
+        printk("CheckNullPointer pointer = NULL");
         return true;
     }
     return false;
@@ -743,7 +722,7 @@ static int mtk_capture_pcm_copy(struct snd_pcm_substream *substream,
     //struct snd_pcm_runtime *runtime = substream->runtime;
     unsigned long flags;
 
-    PRINTK_AUD_UL1("5mic--->mtk_capture_pcm_copy pos = %lucount = %lu     time=%s\n ", pos, count,__TIME__);
+    PRINTK_AUD_UL1("mtk_capture_pcm_copy pos = %lucount = %lu \n ", pos, count);
     // get total bytes to copy
     count = Align64ByteSize(audio_frame_to_bytes(substream , count));
 
@@ -753,7 +732,7 @@ static int mtk_capture_pcm_copy(struct snd_pcm_substream *substream,
 
     if (pVUL_MEM_ConTrol == NULL)
     {
-        printk("5mic--->cannot find MEM control !!!!!!!\n");
+        printk("cannot find MEM control !!!!!!!\n");
         msleep(50);
         return 0;
     }
@@ -761,20 +740,20 @@ static int mtk_capture_pcm_copy(struct snd_pcm_substream *substream,
     if (Vul_Block->u4BufferSize <= 0)
     {
         msleep(50);
-        printk("5mic--->Vul_Block->u4BufferSize <= 0  =%d\n", Vul_Block->u4BufferSize);
+        printk("Vul_Block->u4BufferSize <= 0  =%d\n", Vul_Block->u4BufferSize);
         return 0;
     }
 
     if (CheckNullPointer((void *)Vul_Block->pucVirtBufAddr))
     {
-        printk("5mic--->CheckNullPointer  pucVirtBufAddr = %p\n", Vul_Block->pucVirtBufAddr);
+        printk("CheckNullPointer  pucVirtBufAddr = %p\n", Vul_Block->pucVirtBufAddr);
         return 0;
     }
 
     spin_lock_irqsave(&auddrv_ULInCtl_lock, flags);
     if (Vul_Block->u4DataRemained >  Vul_Block->u4BufferSize)
     {
-        PRINTK_AUD_UL1("5mic--->AudDrv_MEMIF_Read u4DataRemained=%x > u4BufferSize=%x" , Vul_Block->u4DataRemained, Vul_Block->u4BufferSize);
+        PRINTK_AUD_UL1("AudDrv_MEMIF_Read u4DataRemained=%x > u4BufferSize=%x" , Vul_Block->u4DataRemained, Vul_Block->u4BufferSize);
         Vul_Block->u4DataRemained = 0;
         Vul_Block->u4DMAReadIdx   = Vul_Block->u4WriteIdx;
     }
@@ -790,20 +769,20 @@ static int mtk_capture_pcm_copy(struct snd_pcm_substream *substream,
     DMA_Read_Ptr = Vul_Block->u4DMAReadIdx;
     spin_unlock_irqrestore(&auddrv_ULInCtl_lock, flags);
 
-    PRINTK_AUD_UL1("5mic--->AudDrv_MEMIF_Read finish0, read_count:%x, read_size:%x, u4DataRemained:%x, u4DMAReadIdx:0x%x, u4WriteIdx:%x \r\n",
+    PRINTK_AUD_UL1("AudDrv_MEMIF_Read finish0, read_count:%x, read_size:%x, u4DataRemained:%x, u4DMAReadIdx:0x%x, u4WriteIdx:%x \r\n",
                    (unsigned int)read_count, (unsigned int)read_size, Vul_Block->u4DataRemained, Vul_Block->u4DMAReadIdx, Vul_Block->u4WriteIdx);
 
     if (DMA_Read_Ptr + read_size < Vul_Block->u4BufferSize)
     {
         if (DMA_Read_Ptr != Vul_Block->u4DMAReadIdx)
         {
-            printk("5mic--->AudDrv_MEMIF_Read 1, read_size:%zu, DataRemained:%x, DMA_Read_Ptr:0x%zu, DMAReadIdx:%x \r\n",
+            printk("AudDrv_MEMIF_Read 1, read_size:%zu, DataRemained:%x, DMA_Read_Ptr:0x%zu, DMAReadIdx:%x \r\n",
                    read_size, Vul_Block->u4DataRemained, DMA_Read_Ptr, Vul_Block->u4DMAReadIdx);
         }
       if (copy_to_user((void __user *)Read_Data_Ptr, (Vul_Block->pucVirtBufAddr + DMA_Read_Ptr), read_size))     
         {
 
-            printk("5mic--->AudDrv_MEMIF_Read Fail 1 copy to user Read_Data_Ptr:%p, pucVirtBufAddr:%p, u4DMAReadIdx:0x%x, DMA_Read_Ptr:%zu,read_size:%zu", Read_Data_Ptr, Vul_Block->pucVirtBufAddr, Vul_Block->u4DMAReadIdx, DMA_Read_Ptr, read_size);
+            printk("AudDrv_MEMIF_Read Fail 1 copy to user Read_Data_Ptr:%p, pucVirtBufAddr:%p, u4DMAReadIdx:0x%x, DMA_Read_Ptr:%zu,read_size:%zu", Read_Data_Ptr, Vul_Block->pucVirtBufAddr, Vul_Block->u4DMAReadIdx, DMA_Read_Ptr, read_size);
             return 0;
         }
         read_count += read_size;
@@ -817,7 +796,7 @@ static int mtk_capture_pcm_copy(struct snd_pcm_substream *substream,
         Read_Data_Ptr += read_size;
         count -= read_size;
 
-        PRINTK_AUD_UL1("5mic--->AudDrv_MEMIF_Read finish1, copy size:%x, u4DMAReadIdx:0x%x, u4WriteIdx:%x, u4DataRemained:%x \r\n",
+        PRINTK_AUD_UL1("AudDrv_MEMIF_Read finish1, copy size:%x, u4DMAReadIdx:0x%x, u4WriteIdx:%x, u4DataRemained:%x \r\n",
                        (unsigned int)read_size, Vul_Block->u4DMAReadIdx, Vul_Block->u4WriteIdx, Vul_Block->u4DataRemained);
     }
 
@@ -825,18 +804,18 @@ static int mtk_capture_pcm_copy(struct snd_pcm_substream *substream,
     {
         uint32 size_1 = Vul_Block->u4BufferSize - DMA_Read_Ptr;
         uint32 size_2 = read_size - size_1;
-       PRINTK_AUD_UL1("5mic--->AudDrv_MEMIF_Read  ---else---\r\n");
+       PRINTK_AUD_UL1("AudDrv_MEMIF_Read  ---else---\r\n");
 
         if (DMA_Read_Ptr != Vul_Block->u4DMAReadIdx)
         {
 
-            printk("5mic--->AudDrv_MEMIF_Read 2, read_size1:%x, DataRemained:%x, DMA_Read_Ptr:%zu, DMAReadIdx:%x \r\n",
+            printk("AudDrv_MEMIF_Read 2, read_size1:%x, DataRemained:%x, DMA_Read_Ptr:%zu, DMAReadIdx:%x \r\n",
                    size_1, Vul_Block->u4DataRemained, DMA_Read_Ptr, Vul_Block->u4DMAReadIdx);
         }
         if (copy_to_user((void __user *)Read_Data_Ptr, (Vul_Block->pucVirtBufAddr + DMA_Read_Ptr), (unsigned int)size_1))
         {
 
-            printk("5mic--->AudDrv_MEMIF_Read Fail 2 copy to user Read_Data_Ptr:%p, pucVirtBufAddr:%p, u4DMAReadIdx:0x%x, DMA_Read_Ptr:%zu,read_size:%zu",
+            printk("AudDrv_MEMIF_Read Fail 2 copy to user Read_Data_Ptr:%p, pucVirtBufAddr:%p, u4DMAReadIdx:0x%x, DMA_Read_Ptr:%zu,read_size:%zu",
                    Read_Data_Ptr, Vul_Block->pucVirtBufAddr, Vul_Block->u4DMAReadIdx, DMA_Read_Ptr, read_size);
             return 0;
         }
@@ -850,19 +829,19 @@ static int mtk_capture_pcm_copy(struct snd_pcm_substream *substream,
         spin_unlock(&auddrv_ULInCtl_lock);
 
 
-        PRINTK_AUD_UL1("5mic--->AudDrv_MEMIF_Read finish2, copy size_1:%x, u4DMAReadIdx:0x%x, u4WriteIdx:0x%x, u4DataRemained:%x \r\n",
+        PRINTK_AUD_UL1("AudDrv_MEMIF_Read finish2, copy size_1:%x, u4DMAReadIdx:0x%x, u4WriteIdx:0x%x, u4DataRemained:%x \r\n",
                        size_1, Vul_Block->u4DMAReadIdx, Vul_Block->u4WriteIdx, Vul_Block->u4DataRemained);
 
         if (DMA_Read_Ptr != Vul_Block->u4DMAReadIdx)
         {
 
-            printk("5mic--->AudDrv_AWB_Read 3, read_size2:%x, DataRemained:%x, DMA_Read_Ptr:%zu, DMAReadIdx:%x \r\n",
+            printk("AudDrv_AWB_Read 3, read_size2:%x, DataRemained:%x, DMA_Read_Ptr:%zu, DMAReadIdx:%x \r\n",
                    size_2, Vul_Block->u4DataRemained, DMA_Read_Ptr, Vul_Block->u4DMAReadIdx);
         }
         if (copy_to_user((void __user *)(Read_Data_Ptr + size_1), (Vul_Block->pucVirtBufAddr + DMA_Read_Ptr), size_2))
         {
 
-            printk("5mic--->AudDrv_MEMIF_Read Fail 3 copy to user Read_Data_Ptr:%p, pucVirtBufAddr:%p, u4DMAReadIdx:0x%x , DMA_Read_Ptr:%zu, read_size:%zu", Read_Data_Ptr, Vul_Block->pucVirtBufAddr, Vul_Block->u4DMAReadIdx, DMA_Read_Ptr, read_size);
+            printk("AudDrv_MEMIF_Read Fail 3 copy to user Read_Data_Ptr:%p, pucVirtBufAddr:%p, u4DMAReadIdx:0x%x , DMA_Read_Ptr:%zu, read_size:%zu", Read_Data_Ptr, Vul_Block->pucVirtBufAddr, Vul_Block->u4DMAReadIdx, DMA_Read_Ptr, read_size);
             return read_count << 2;
         }
         read_count += size_2;
@@ -875,11 +854,11 @@ static int mtk_capture_pcm_copy(struct snd_pcm_substream *substream,
         count -= read_size;
         Read_Data_Ptr += read_size;
 
-        PRINTK_AUD_UL1("5mic---> AudDrv_MEMIF_Read finish3, copy size_2:%x, u4DMAReadIdx:0x%x, u4WriteIdx:0x%x u4DataRemained:%x \r\n",
+        PRINTK_AUD_UL1("AudDrv_MEMIF_Read finish3, copy size_2:%x, u4DMAReadIdx:0x%x, u4WriteIdx:0x%x u4DataRemained:%x \r\n",
                        size_2, Vul_Block->u4DMAReadIdx, Vul_Block->u4WriteIdx, Vul_Block->u4DataRemained);
     }
 
-	PRINTK_AUD_UL1("5mic--->AudDrv_MEMIF_Read  ---finish\r\n");
+	PRINTK_AUD_UL1("AudDrv_MEMIF_Read  ---finish\r\n");
 						
     return read_count >> 2;
 }
@@ -888,7 +867,7 @@ static int mtk_capture_pcm_silence(struct snd_pcm_substream *substream,
                                    int channel, snd_pcm_uframes_t pos,
                                    snd_pcm_uframes_t count)
 {
-    printk("5mic--->dummy_pcm_silence \n");
+    printk("dummy_pcm_silence \n");
     return 0; /* do nothing */
 }
 
@@ -898,7 +877,7 @@ static void *dummy_page[2];
 static struct page *mtk_capture_pcm_page(struct snd_pcm_substream *substream,
                                          unsigned long offset)
 {
-    printk("%s 5mic--->\n", __func__);
+    printk("%s \n", __func__);
     return virt_to_page(dummy_page[substream->stream]); /* the same page */
 }
 
@@ -927,7 +906,7 @@ static struct snd_soc_platform_driver mtk_soc_platform =
 
 static int mtk_capture_probe(struct platform_device *pdev)
 {
-    printk("5mic--->mtk_capture_probe\n");
+    printk("mtk_capture_probe\n");
 
     pdev->dev.coherent_dma_mask = DMA_BIT_MASK(64);
     if (pdev->dev.dma_mask == NULL)
@@ -947,7 +926,7 @@ static int mtk_capture_probe(struct platform_device *pdev)
 
 static int mtk_asoc_capture_pcm_new(struct snd_soc_pcm_runtime *rtd)
 {
-    printk(" 5mic---> mtk_asoc_capture_pcm_new \n");
+    printk("mtk_asoc_capture_pcm_new \n");
     return 0;
 }
 

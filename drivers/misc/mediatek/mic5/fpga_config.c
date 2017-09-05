@@ -52,10 +52,10 @@ static void __iomem *map_io_base;
 #define D_IO_PUL0(x)    (D_IO_BASE+(x*0x24)+0x1c)
 #define D_IO_PUL1(x)    (D_IO_BASE+(x*0x24)+0x20)
 
-#define GPIO_TCK_PIN   (GPIO167|0x80000000)
-#define GPIO_TMS_PIN   (GPIO166|0x80000000)
-#define GPIO_JTAGEN_PIN   (GPIO170|0x80000000)
-#define GPIO_RST_PIN   (GPIO169|0x80000000)
+#define GPIO_TCK_PIN   (GPIO97|0x80000000)
+#define GPIO_TMS_PIN   (GPIO98|0x80000000)
+#define GPIO_JTAGEN_PIN   (GPIO100|0x80000000)
+#define GPIO_RST_PIN   (GPIO101|0x80000000)
 
 
 

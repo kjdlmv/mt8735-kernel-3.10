@@ -32,7 +32,6 @@
 // Fix-me: marked for early porting
 #include <cust_gpio_usage.h>
 #include <cust_eint.h>
-#include <misc.h>
 #if defined(CONFIG_MTK_COMBO) || defined(CONFIG_MTK_COMBO_MODULE)
 #include <mach/mtk_wcn_cmb_stub.h>
 #if 0
@@ -129,7 +128,7 @@ extern void rtc_pwm_enable_check(void);
 
 void mt_power_off(void)
 {
-	printk("daviekuo mt_power_off\n");
+	printk("mt_power_off\n");
 
 	// enable VRTC PWM if needed
 	rtc_pwm_enable_check();
@@ -137,7 +136,7 @@ void mt_power_off(void)
 	/* pull PWRBB low */
 	/*Hong-Rong: FIXME for early porting*/
 	rtc_bbpu_power_down();
-	printk("daviekuo mt_power_off rtc_bbpu_power_down finished\n");
+
 	while (1) {
 #if defined(CONFIG_POWER_EXT)
 		//EVB
@@ -145,8 +144,7 @@ void mt_power_off(void)
 #else	
 		//Phone	
 		printk("Phone with charger\n");
-		if (1 == mt_get_gpio_in(CHG_DET_PIN)/*pmic_chrdet_status() == KAL_TRUE*/)		//daviekuo modified 0704
-			printk("daviekuo %s mt_get_gpio_in(CHG_DET_PIN = 1\n)", __func__);
+		if (pmic_chrdet_status() == KAL_TRUE)
 			arch_reset(0, "power_off_with_charger");
 #endif
     }

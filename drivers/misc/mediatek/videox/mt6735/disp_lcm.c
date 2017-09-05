@@ -477,7 +477,7 @@ int disp_lcm_resume(disp_lcm_handle *plcm)
 {
 	DISPFUNC();
 	LCM_DRIVER *lcm_drv = NULL;
-
+	
 	if(_is_lcm_inited(plcm))
 	{
 		lcm_drv = plcm->drv;
