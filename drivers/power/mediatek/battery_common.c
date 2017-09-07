@@ -2309,12 +2309,9 @@ void mt_battery_GetBatteryData(void)
 	}
 	else
 	{
-	BMT_status.temperature =28;
-	/*
 	BMT_status.temperature =
 	    mt_battery_average_method(BATTERY_AVG_TEMP, &batteryTempBuffer[0], temperature, &temperature_sum,
 				      batteryIndex);
-	*/			      
 	}
 
 
