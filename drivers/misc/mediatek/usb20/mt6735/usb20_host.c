@@ -59,7 +59,7 @@ u32 delay_time1 = 55;
 module_param(delay_time1,int,0644);
 u32 iddig_cnt = 0;
 module_param(iddig_cnt,int,0644);
-#define GPIO88_VCC (GPIO88 |0x80000000)
+
 void mt_usb_set_vbus(struct musb *musb, int is_on)
 {
 	DBG(0,"mt65xx_usb20_vbus++,is_on=%d\r\n",is_on);
@@ -71,11 +71,6 @@ void mt_usb_set_vbus(struct musb *musb, int is_on)
 				mt_set_gpio_pull_enable(GPIO_OTG_DRVVBUS_PIN,GPIO_PULL_ENABLE);
 				mt_set_gpio_dir(GPIO_OTG_DRVVBUS_PIN,GPIO_DIR_OUT); // output 
 				mt_set_gpio_out(GPIO_OTG_DRVVBUS_PIN,GPIO_OUT_ONE);
-
-		mt_set_gpio_mode(GPIO88_VCC, GPIO_MODE_00);	
-		mt_set_gpio_dir(GPIO88_VCC, GPIO_DIR_OUT) ;	 
-		mt_set_gpio_out(GPIO88_VCC,GPIO_OUT_ONE);
-		
     #elif defined(CONFIG_MTK_FAN5405_SUPPORT)
 		fan5405_set_opa_mode(1);
 		fan5405_set_otg_pl(1);
@@ -104,10 +99,6 @@ void mt_usb_set_vbus(struct musb *musb, int is_on)
 				mt_set_gpio_pull_enable(GPIO_OTG_DRVVBUS_PIN,GPIO_PULL_ENABLE);
 				mt_set_gpio_dir(GPIO_OTG_DRVVBUS_PIN,GPIO_DIR_OUT); // output 
 				mt_set_gpio_out(GPIO_OTG_DRVVBUS_PIN,GPIO_OUT_ZERO);
-
-		mt_set_gpio_mode(GPIO88_VCC, GPIO_MODE_00);	
-		mt_set_gpio_dir(GPIO88_VCC, GPIO_DIR_OUT) ;	 
-		mt_set_gpio_out(GPIO88_VCC,GPIO_OUT_ZERO);
     #elif defined(CONFIG_MTK_FAN5405_SUPPORT)
 		fan5405_reg_config_interface(0x01,0x30);
 		fan5405_reg_config_interface(0x02,0x8e);

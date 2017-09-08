@@ -129,8 +129,8 @@ extern unsigned char gtp_default_FW_fl[];
 
 //#define TPD_PROXIMITY
 //#define TPD_HAVE_BUTTON               //report key as coordinate,Vibration feedback
-#define TPD_WARP_X
-#define TPD_WARP_Y
+//#define TPD_WARP_X
+//#define TPD_WARP_Y
 
 #define GTP_DEBUG_ON          1
 #define GTP_DEBUG_ARRAY_ON    0

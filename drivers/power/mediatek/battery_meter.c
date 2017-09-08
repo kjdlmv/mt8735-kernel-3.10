@@ -2621,23 +2621,160 @@ kal_int32 get_dynamic_period(int first_use, int first_wakeup_time, int battery_c
 
 #endif
 }
+extern int IMM_GetOneChannelValue(int dwChannel, int data[4], int* rawdata);
+extern int IMM_IsAdcInitReady(void);
 
+static kal_uint32 get_curent_battery_vol(int Channel)		//added by daviekuo for y20b
+{
+    int ret = 0, data[4], i, ret_value = 0, ret_temp = 0, times = 5;
+
+    if( IMM_IsAdcInitReady() == 0 )
+    {
+        pr_notice("[DISO] AUXADC is not ready");
+        return 0;
+    }
+
+    i = times;
+    while (i--)
+    {
+        ret = IMM_GetOneChannelValue(Channel, data, &ret_temp);
+	printk("daviekuo data[0]=%d, data[1]=%d,,ret_temp=%d\n",data[0], data[1],ret_temp);
+
+        if(ret == 0) {
+            ret_value += data[0]*1000 + data[1]*10;
+			//printk("daviekuo ret_value=%d, times=%d\n",ret_value, times);
+        } else {
+            times = times > 1 ? times - 1 : 1;
+
+        }
+    }
+
+//    ret_value = ret_value*1500/4096 ;
+
+
+    ret_value = ret_value/times;
+
+    return  ret_value;
+}
+int avg_vol_test=0;
+int rtc_capatiy_test=0;
+
+kal_int32 battery_meter_to_ui_persent(int Channel,bool first_boot_flag)	
+{
+	int ret = 0, data[4], i, ret_value = 0, ret_temp = 0, times = 12,pbuf[12];
+	unsigned int avg_vol,ret_ui,max,min,sum=0;
+	static unsigned int pre_ui,next_ui,timer_counter,chargerval;
+	   if( IMM_IsAdcInitReady() == 0 )
+	   {
+		   pr_notice("[DISO] AUXADC is not ready");
+		   return 0;
+	   }
+	
+	   i = times;
+	   while (i--)
+	   {
+		   ret = IMM_GetOneChannelValue(Channel, data, &ret_temp);
+		  // printk("daviekuo data[0]=%d, data[1]=%d,,ret_temp=%d\n",data[0], data[1],ret_temp);
+	
+		   if(ret == 0) {
+			 pbuf[i]=ret_temp;
+			 mdelay(7);
+			   printk("daviekuo ret_value=%d, times=%d,,ret_temp=%d\n",ret_value, i,ret_temp);
+		   	}
+	   }
+	   max=pbuf[0];
+	   min=pbuf[0];
+	   sum=pbuf[0];
+	   for(i=1;i<12;i++)
+	   {
+		if(pbuf[i]>max)max=pbuf[i];
+		if(pbuf[i]<min)min=pbuf[i];
+		sum+=pbuf[i];
+	   }
+	   sum=sum-min-max;
+	   avg_vol=sum/10;
+	 avg_vol_test=avg_vol;
+
+	 if(avg_vol >=3630)//12.4v  //
+	 {
+		ret_ui=100;
+		BMT_status.bat_full = KAL_TRUE;
+	 }
+	 else if(avg_vol< 3630 && avg_vol >=3600)//12.0v--12.4v  //85%---100%
+	 {
+		ret_ui=85+(avg_vol-3600)/((3630-3600)/15);//2
+	 }
+	 else if(avg_vol< 3604 && avg_vol >=3454)//11.5V--12.0v  //60%---85%
+	 {
+		 ret_ui=60+(avg_vol-3454)/((3604-3454)/25);//6.0
+
+	 }
+	  else if(avg_vol< 3454 && avg_vol >=3364)//11.0V--11.5v  //30%---60%
+	 {
+		  ret_ui=30+(avg_vol-3364)/((3454-3364)/30);//3.0
+
+	 }
+	    else if(avg_vol< 3364 && avg_vol >=3154)//10.5V--11.14v  //0%---30%
+	 {
+		  ret_ui=1+(avg_vol-3154)/((3364-3244)/30);//4.0
+
+	 }
+	else 	
+	{
+	
+		if(BMT_status.SOC >1)return --BMT_status.SOC;
+
+		ret_ui=0;
+		 	
+	}
+	
+	  printk("daviekuo avg_vol=%d,ret_ui=%d,,pre_ui=%d,BMT_status.=%d,first_boot_flag=%d\n",avg_vol,ret_ui,pre_ui,BMT_status.UI_SOC,first_boot_flag);
+
+	 if(first_boot_flag == true)
+	  {
+		   unsigned int rtc_val;
+		     rtc_val=get_rtc_spare_fg_value();
+		     rtc_capatiy_test=rtc_val;
+		     printk("daviekuo avg_vol=%d,ret_ui=%d,,pre_ui=%d,BMT_status.=%d,first_boot_flag=%d, rtc_val=%d\n",avg_vol,ret_ui,pre_ui,BMT_status.UI_SOC,first_boot_flag, rtc_val);
+		    if( rtc_val>0 && ((ret_ui >(rtc_val+6)) ||(ret_ui <abs(rtc_val-6))))return rtc_val;	 
+
+		    return ret_ui;
+	  }
+	
+	 if (timer_counter == 5) 
+	 {
+		  timer_counter = 0;
+	      if( ret_ui>(BMT_status.SOC+3))        return BMT_status.SOC +=1;
+	      else if(ret_ui <(BMT_status.SOC-3))return BMT_status.SOC -=1;	  
+	      else 					 	   return ret_ui;
+			
+	 } 			
+	 else 
+	 {
+	 timer_counter++;
+                 }
+	 return BMT_status.SOC;		
+	
+}
 /* ============================================================ // */
 kal_int32 battery_meter_get_battery_voltage(kal_bool update)
 {
 	int ret = 0;
 	int val = 5;
 	static int pre_val = -1;
-
+	
 	if (update == KAL_TRUE || pre_val == -1) {
 		val = 5;		/* set avg times */
-		ret = battery_meter_ctrl(BATTERY_METER_CMD_GET_ADC_V_BAT_SENSE, &val);
+		//ret = battery_meter_ctrl(BATTERY_METER_CMD_GET_ADC_V_BAT_SENSE, &val);
+			val = get_curent_battery_vol(12);
+		val = (val*32)/10;
 		pre_val = val;
 	} else {
 		val = pre_val;
 	}
+	
 	g_sw_vbat_temp = val;
-
+	printk("daviekuo battery_meter_get_battery_voltage val %d\n", val);
 #ifdef MTK_BATTERY_LIFETIME_DATA_SUPPORT
 	if (g_sw_vbat_temp > gFG_max_voltage) {
 		gFG_max_voltage = g_sw_vbat_temp;

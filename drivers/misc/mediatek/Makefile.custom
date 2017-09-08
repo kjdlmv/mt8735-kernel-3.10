@@ -36,8 +36,10 @@ ccflags-y += -I$(MTK_PLATFORM_PATH_ROOT)/include \
              -I$(MTK_PROJECT_PATH_ROOT)/power \
              -I$(MTK_PROJECT_PATH_ROOT)/rtc \
              -I$(MTK_PROJECT_PATH_ROOT)/sound/inc \
-             -I$(MTK_PROJECT_PATH_ROOT)/touchpanel/ft5406_82 \
+             -I$(MTK_PROJECT_PATH_ROOT)/touchsensor/ \
 			 -I$(MTK_PROJECT_PATH_ROOT)/touchpanel/GT9XX \
+			 -I$(MTK_PROJECT_PATH_ROOT)/breathled \
+			 -I$(MTK_PROJECT_PATH_ROOT)/misc/ \
              -I$(MTK_PROJECT_PATH_ROOT)/vibrator \
              -I$(MTK_PROJECT_PATH_ROOT)/nand \
 	         -I$(DRVGEN_OUT)/inc
@@ -80,7 +82,6 @@ ccflags-y += -I$(MTK_CUSTOM_PATH)/accdet/$(MTK_PLATFORM) \
              -I$(MTK_CUSTOM_PATH)/smi/$(MTK_PLATFORM) \
              -I$(MTK_CUSTOM_PATH)/ssw/inc \
              -I$(MTK_CUSTOM_PATH)/sync \
-             -I$(MTK_CUSTOM_PATH)/misc \
              -I$(MTK_CUSTOM_PATH)/uart/$(MTK_PLATFORM) \
              -I$(MTK_CUSTOM_PATH)/vibrator/$(MTK_PLATFORM) \
              -I$(MTK_CUSTOM_PATH)/video/$(MTK_PLATFORM) \
@@ -90,6 +91,7 @@ ccflags-y += -I$(MTK_CUSTOM_PATH)/accdet/$(MTK_PLATFORM) \
              -I$(MTK_CUSTOM_PATH)/lcm \
              -I$(MTK_CUSTOM_PATH)/lcm/inc \
              -I$(MTK_CUSTOM_PATH)/multibridge/$(MTK_PLATFORM)/mt8193/inc \
+			 -I$(MTK_CUSTOM_PATH)/wrapper \
 	     -I$(MTK_CUSTOM_PATH)/dum-char/$(MTK_PLATFORM)
 
 ifeq ($(CONFIG_ARCH_MT6592),y)

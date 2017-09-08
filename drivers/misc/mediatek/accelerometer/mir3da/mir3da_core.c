@@ -872,10 +872,11 @@ static int NSA_calibrate(MIR_HANDLE handle, int coarse_step[3], int fine_step[3]
        }
        target[2] = (xyz[2] > 0) ? 1024 : (-1024);
     }
-	
+#if 0	
 	target[0] = 0;
 	target[1] = 1024;
 	target[2] = 0;
+#endif	
     MI_MSG("---Start Calibrate, trim target %d, %d, %d---\n", target[0], target[1], target[2]);
 
     // Stage1: Coarse tune once

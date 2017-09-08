@@ -139,13 +139,13 @@ enum hrtimer_restart delay_hrtimer_func(struct hrtimer *timer)
 		mt_eint_set_hw_debounce(CUST_EINT_CHR_STAT_NUM, 100);
 		mt_eint_registration(CUST_EINT_CHR_STAT_NUM, CUST_EINTF_TRIGGER_FALLING, touchsersor_eint0_func, 0);			
 		mt_eint_unmask(CUST_EINT_CHR_STAT_NUM);
-/*
+
 	ktime_t ktime;
 	ktime = ktime_set(1, 0);	
 	hrtimer_init(&dance_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	dance_timer.function = commit_delay_hrtimer_func;
 	hrtimer_start(&dance_timer, ktime, HRTIMER_MODE_REL);
-*/
+
 	printk("delay_hrtimer_func	finish-------------\n");
 
 	return HRTIMER_NORESTART;
