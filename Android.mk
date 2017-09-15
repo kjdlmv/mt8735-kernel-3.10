@@ -1,4 +1,4 @@
-LOCAL_PATH := $(call my-dir)
+LOCAL_PATH := $(call my-dir)  
 KERNEL_ROOT_DIR := $(PWD)
 
 define touch-kernel-image-timestamp
