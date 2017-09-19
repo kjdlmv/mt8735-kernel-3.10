@@ -248,7 +248,7 @@ extern LCM_DRIVER  jd9161ba_wvga_dsi_vdo_drv;
 extern LCM_DRIVER  jd9161ba_dsi_vdo_ips;
 extern LCM_DRIVER  rm68200_dsi_lcm_drv;
 extern LCM_DRIVER jd9365_dsi_hd_drv;
-extern LCM_DRIVER jd9366_ivo8_lcm_drv;
+extern LCM_DRIVER otm1289a_dsi_hd_drv;
 
 LCM_DRIVER* lcm_driver_list[] =
 {
@@ -1135,8 +1135,9 @@ LCM_DRIVER* lcm_driver_list[] =
 #if defined(JD9365_DSI_HD)
 	&jd9365_dsi_hd_drv,
 #endif
-#if defined(JD9366_IVO8)
-	&jd9366_ivo8_lcm_drv,
+
+#if defined(OTM1289A_HD720_DSI_VDO_TM)
+	&otm1289a_dsi_hd_drv,
 #endif
 };
 

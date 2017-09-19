@@ -29,7 +29,7 @@ static char debuf[10];
 static struct switch_dev touchsensor_dev;
 static struct hrtimer timer;
 static struct hrtimer dance_timer;
-static unsigned long left_time,right_time;
+static unsigned long left_time=0,right_time=0;
 static struct task_struct *thread = NULL;
 
 extern void mt_eint_mask(unsigned int eint_num);
@@ -88,8 +88,13 @@ enum hrtimer_restart commit_delay_hrtimer_func(struct hrtimer *timer)
 	if((jiffies -right_time) >4*HZ)right_time=0;
 	if((jiffies -left_time) >4*HZ)left_time=0;
 
-	if( (jiffies -right_time) >3*HZ && (jiffies -right_time) <4*HZ && (jiffies -left_time) >3*HZ && (jiffies -left_time) <4*HZ && abs(left_time-right_time)<10)	
-		commit_status("dance");
+	if(right_time >0 && left_time>0 )
+	{
+		if( (jiffies -right_time) >3*HZ && (jiffies -right_time) <4*HZ && (jiffies -left_time) >3*HZ && (jiffies -left_time) <4*HZ && abs(left_time-right_time)<10)	
+			commit_status("dance");
+
+		 printk("commit_status  dance  jiffes=%ld,right_time=%ld,left_time=%ld\n",jiffies,right_time,left_time);
+	}
 	hrtimer_forward_now(&dance_timer, ktime_set(1, 0));	
 	
 

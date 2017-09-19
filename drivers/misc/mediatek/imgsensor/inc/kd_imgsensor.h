@@ -111,7 +111,6 @@
 #define GC0328_SENSOR_ID                         0x9d
 #define GC5024_SENSOR_ID               		 0x5024
 #define GC2755_SENSOR_ID               		 0x2655
-#define GC5005MIPI_SENSOR_ID               		 0x5005
 #define GC0409MIPI_SENSOR_ID 0x0409
 #define SP0A09_SENSOR_ID										0x0a09
 #define HI545MIPI_SENSOR_ID	0x2555
@@ -123,7 +122,6 @@
 #define SENSOR_DRVNAME_GC0409_MIPI_RAW   "gc0409mipiraw"
 #define SENSOR_DRVNAME_HI545_MIPI_RAW   "hi545mipiraw"
 #define SENSOR_DRVNAME_GC2755_MIPI_RAW   "gc2755mipiraw"
-#define SENSOR_DRVNAME_GC5005_MIPI_RAW   "gc5005mipiraw"
 #define SENSOR_DRVNAME_GC2355B_MIPI_RAW   "gc2355bmipiraw"
 #define SENSOR_DRVNAME_OV5648_MIPI_RAW   	"ov5648mipi"
 #define SENSOR_DRVNAME_HI551_MIPI_RAW   "hi551mipiraw"

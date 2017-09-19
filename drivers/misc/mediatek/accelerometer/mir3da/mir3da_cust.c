@@ -62,7 +62,7 @@
 #include <mach/mt_gpio.h>
 #include <mach/mt_boot.h>
 #endif
-
+#include <misc.h>
 #if defined(MT6516)
 #define POWER_NONE_MACRO MT6516_POWER_NONE
 #else
@@ -1183,7 +1183,12 @@ static int mir3da_operate(void* self, uint32_t command, void* buff_in, int size_
                 mir3da_readSensorData(priv->client, buff);  
                 sscanf(buff, "%x %x %x", &gsensor_data->values[0], 
                 &gsensor_data->values[1], &gsensor_data->values[2]);
-                
+                if(gsensor_data_switch)
+                {
+					gsensor_data->values[0] = 9700;
+					gsensor_data->values[1] = 0;
+					//gsensor_data->values[2] = 0;
+				}
                 gsensor_data->status = SENSOR_STATUS_ACCURACY_MEDIUM;                
                 gsensor_data->value_divide = 1000;                
             }

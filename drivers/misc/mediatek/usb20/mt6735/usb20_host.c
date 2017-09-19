@@ -30,6 +30,9 @@
 
 #ifdef CONFIG_USB_MTK_OTG
 #include <mach/mt_boot_common.h>
+
+#include <misc.h>
+
 extern BOOTMODE g_boot_mode;
 
 extern struct musb *mtk_musb;
@@ -71,6 +74,15 @@ void mt_usb_set_vbus(struct musb *musb, int is_on)
 				mt_set_gpio_pull_enable(GPIO_OTG_DRVVBUS_PIN,GPIO_PULL_ENABLE);
 				mt_set_gpio_dir(GPIO_OTG_DRVVBUS_PIN,GPIO_DIR_OUT); // output 
 				mt_set_gpio_out(GPIO_OTG_DRVVBUS_PIN,GPIO_OUT_ONE);
+    		mt_set_gpio_mode(GPIO88 | 0x80000000,GPIO_MODE_00);
+				mt_set_gpio_pull_enable(GPIO88 | 0x80000000,GPIO_PULL_ENABLE);
+				mt_set_gpio_dir(GPIO88 | 0x80000000,GPIO_DIR_OUT); // output 
+				mt_set_gpio_out(GPIO88 | 0x80000000,GPIO_OUT_ONE);
+				
+			mt_set_gpio_mode(CHG_EN_PIN,GPIO_MODE_00);		
+				mt_set_gpio_dir(CHG_EN_PIN, GPIO_DIR_OUT);
+				mt_set_gpio_out(CHG_EN_PIN, 1);	
+	
     #elif defined(CONFIG_MTK_FAN5405_SUPPORT)
 		fan5405_set_opa_mode(1);
 		fan5405_set_otg_pl(1);
@@ -99,6 +111,13 @@ void mt_usb_set_vbus(struct musb *musb, int is_on)
 				mt_set_gpio_pull_enable(GPIO_OTG_DRVVBUS_PIN,GPIO_PULL_ENABLE);
 				mt_set_gpio_dir(GPIO_OTG_DRVVBUS_PIN,GPIO_DIR_OUT); // output 
 				mt_set_gpio_out(GPIO_OTG_DRVVBUS_PIN,GPIO_OUT_ZERO);
+        mt_set_gpio_mode(GPIO88 | 0x80000000,GPIO_MODE_00);
+				mt_set_gpio_pull_enable(GPIO88 | 0x80000000,GPIO_PULL_ENABLE);
+				mt_set_gpio_dir(GPIO88 | 0x80000000,GPIO_DIR_OUT); // output 
+				mt_set_gpio_out(GPIO88 | 0x80000000,GPIO_OUT_ZERO);		
+
+		mt_set_gpio_out(CHG_EN_PIN, 0);	
+		
     #elif defined(CONFIG_MTK_FAN5405_SUPPORT)
 		fan5405_reg_config_interface(0x01,0x30);
 		fan5405_reg_config_interface(0x02,0x8e);

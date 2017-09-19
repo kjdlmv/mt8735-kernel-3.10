@@ -33,7 +33,6 @@
 #include <linux/aal_api.h>
 #include <linux/aee.h>
 #include <mach/mt_pmic_wrap.h>
-#include <y128_touchsensor.h>
 
 static DEFINE_MUTEX(leds_mutex);
 static DEFINE_MUTEX(leds_pmic_mutex);
@@ -767,14 +766,6 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 				level = 1;
 			} else {
 				level = (level*CONFIG_LIGHTNESS_MAPPING_VALUE)/255;
-			}
-			if(level == 0)
-			{
-				backlight_status = 0;
-			}
-			else
-			{
-				backlight_status = 1;
 			}
 			LEDS_DEBUG("[LED]Set Backlight directly %d at time %lu, mappping level is %d \n",led_data->level,jiffies, level);
 			if(MT65XX_LED_MODE_CUST_BLS_PWM == led_data->cust.mode)

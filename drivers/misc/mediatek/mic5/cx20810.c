@@ -57,9 +57,12 @@ static void __iomem *map_io_base;
 
 #define MAX_CX20810_NUM (3)
 
-// g_client_cx20810[0] is on adapter 0 and its address is 0x35
-// g_client_cx20810[1] is on adapter 1 and its address is 0x35
-// g_client_cx20810[2] is on adapter 1 and its address is 0x3B
+#define GPIO57_3_3V_PIN (GPIO57|0x80000000)   //ADC POWER
+#define GPIO96_LDO_PIN (GPIO96|0x80000000)   //ADC POWER
+#define GPIO99_ADC_RST1_PIN (GPIO99|0x80000000)   //low power 3b
+#define GPIO58_ADC_RST2_PIN (GPIO58|0x80000000)   //high power 35
+#define GPIO95_FPGA_DAT_PIN (GPIO95|0x80000000)    
+
 static struct i2c_client * g_client_cx20810[MAX_CX20810_NUM];
 static const unsigned short i2c_cx20810_addr[] = {(0x35), (0x3B), I2C_CLIENT_END};
 static struct i2c_board_info __initdata cx20810_dev[]=
@@ -192,6 +195,26 @@ static int i2c_master_send_array_to_cx20810(const struct i2c_client *client, con
     }
     return 0;
 }
+int reset_mic_cx20810(void)
+{
+	int ret1 ,ret2;
+	mt_set_gpio_out(GPIO57_3_3V_PIN,0);
+	mdelay(300);
+	mt_set_gpio_out(GPIO57_3_3V_PIN,1);
+	mdelay(500);
+
+	cx20810_set_mode(0,0);
+	ret1=ADC_i2c_read_reg(0x10,0);
+	printk("111add35=%x\n", ret1);
+	mdelay(650);
+	cx20810_set_mode(0,1);
+	ret2=ADC_i2c_read_reg(0x10,1);
+	printk("111add3b=%x\n",ret2 );
+
+	if(ret1 ==0x5f && ret2 == 0x5f)
+		return 1;
+         return 0;
+}
 
 // initial cx20810
 static void cx20810_init(int index, int mode)
@@ -225,12 +248,6 @@ static int cx20810_hw_init()
   #endif
     return 0;
 }
-
-#define GPIO57_3_3V_PIN (GPIO57|0x80000000)   //ADC POWER
-#define GPIO96_LDO_PIN (GPIO96|0x80000000)   //ADC POWER
-#define GPIO99_ADC_RST1_PIN (GPIO99|0x80000000)   //low power 3b
-#define GPIO58_ADC_RST2_PIN (GPIO58|0x80000000)   //high power 35
-#define GPIO95_FPGA_DAT_PIN (GPIO95|0x80000000)    
 
 static int i2c_driver_cx20810_probe(struct i2c_client * client, const struct i2c_device_id* id)
 {

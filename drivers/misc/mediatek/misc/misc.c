@@ -1,5 +1,4 @@
 #include <linux/module.h>
-#include <linux/platform_device.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>
 #include <linux/miscdevice.h>
@@ -11,13 +10,13 @@
 
 #include <asm/uaccess.h>
 #include <linux/hwmsen_dev.h>
+#include <linux/earlysuspend.h>
 
 #include <asm/uaccess.h>	/* copy_*_user */
 #include <linux/semaphore.h>  
 #include <linux/device.h>   /*class_create*/ 
 #include <linux/slab.h>
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
 
 #include <mach/gpio_const.h>
 #include <cust_eint.h>
@@ -26,300 +25,240 @@
 #include <mach/eint.h>
 
 #include <mach/battery_common.h>
-#include <mach/mt_boot_common.h>
+
+#include <linux/wakelock.h>
 #include <misc.h>
 /*----------------------------------------------------------------------------*/
-#include<linux/wakelock.h>
-#define CHG_DET_EN_PIN (GPIO6 | 0x80000000)
-#define CHG_DET_PIN    (GPIO120 | 0x80000000)
+#define DEV_NAME   "misc_yyd"
+static struct cdev *misc_cdev;
+static dev_t misc_dev;
+static struct class *misc_class = NULL;
+struct device *misc_device = NULL;
+extern  void aw2013_breath_all(int led0,int led1,int led2);
+extern  int reset_mic_cx20810(void);
+int danceflag=false;
 static struct wake_lock m_lock;
+
+
+
+kal_bool gsensor_data_switch = false;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #ifdef CONFIG_EARLYSUSPEND
-
-static void m_suspend( struct early_suspend *h )
-{
-//----------------li fei-----------------
-
-		mt_set_gpio_out((GPIO127|0x80000000),0);
-		mt_set_gpio_out((GPIO168|0x80000000),0);
-		//mt_set_gpio_out((GPIO87|0x80000000),0);
-		mt_set_gpio_out((GPIO129|0x80000000),0);
-		mt_set_gpio_out((GPIO94|0x80000000),0);
+  
+  static void m_suspend( struct early_suspend *h )
+  {
+	//----------lifei--------------
+		mt_set_gpio_out((GPIO68|0x80000000),0);
 		mt_set_gpio_out((GPIO2|0x80000000),0);
+		mt_set_gpio_out((GPIO43|0x80000000),0);
+		mt_set_gpio_out((GPIO121|0x80000000),0);
+	//----------------------------	
 
-	//-----------------------------------
-
-	mt_set_gpio_out(BLUE_LED_PIN, 0); 
-}
-
-static void m_resume( struct early_suspend *h )
-{
-//----------------li fei-----------------
-	mt_set_gpio_out((GPIO127|0x80000000),1);
-	mt_set_gpio_out((GPIO168|0x80000000),1);
-	//mt_set_gpio_out((GPIO87|0x80000000),1);
-	mt_set_gpio_out((GPIO129|0x80000000),1);
-	mt_set_gpio_out((GPIO94|0x80000000),1);
-	mt_set_gpio_out((GPIO2|0x80000000),1);
-
-//-----------------------------------
-	mt_set_gpio_out(BLUE_LED_PIN, 1);	
-}
-
-static struct early_suspend misc_early_suspend_handler = {
-	.level = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1,
-	.suspend = m_suspend,
-	.resume = m_resume,
-};
-
-#endif
-#endif
-
-static int misc_probe(struct platform_device *pdev)
-{
-	int ret = 0;
-	
-	BOOTMODE bootmode = NORMAL_BOOT;
-	//mt_set_gpio_pull_enable(LD0_3V3_PIN, GPIO_PULL_ENABLE);	
-
-	wake_lock_init(&m_lock, WAKE_LOCK_SUSPEND, "misc"); //davie: forbid deep sleep for 5mic
-	wake_lock(&m_lock);
-	
-	printk("misc setting  init	finish--------\n");
-	//Motor
-	mt_set_gpio_mode(MOTOR_RST_PIN, GPIO_MODE_00);
-	mt_set_gpio_dir(MOTOR_RST_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_RST_PIN, 1);
-	
-	mt_set_gpio_mode(MOTOR_BOOT0_PIN, GPIO_MODE_00);
-	mt_set_gpio_dir(MOTOR_BOOT0_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_BOOT0_PIN, 0);
-	
-	mt_set_gpio_mode(MOTOR_POWEN_PIN, GPIO_MODE_00);
-	mt_set_gpio_dir(MOTOR_POWEN_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_POWEN_PIN, 1);
-
-//	mt_set_gpio_dir(CHG_CTL_PIN, GPIO_DIR_OUT);
-//	mt_set_gpio_out(CHG_CTL_PIN, 0);		
-
-	//Easy home
-	mt_set_gpio_mode(MOTOR_ZNJJPOW_PIN, GPIO_MODE_00);	
-	mt_set_gpio_dir(MOTOR_ZNJJPOW_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_ZNJJPOW_PIN, 1);	
-	
-	//Charger
-	//mt_set_gpio_mode(CHG_EN_PIN, GPIO_MODE_00);
-	//mt_set_gpio_dir(CHG_EN_PIN, GPIO_DIR_OUT);
-	//mt_set_gpio_out(CHG_EN_PIN, 0);	
-	
-	
-	mt_set_gpio_mode(LD0_3V3_PIN, GPIO_MODE_00); 
-	mt_set_gpio_dir(LD0_3V3_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(LD0_3V3_PIN, 1);
-	
-	mt_set_gpio_mode(BLUE_LED_PIN, GPIO_MODE_00); 
-	//mt_set_gpio_pull_enable(LD0_3V3_PIN, GPIO_PULL_ENABLE);	
-	mt_set_gpio_dir(BLUE_LED_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(BLUE_LED_PIN, 1);
-	
-	
-	mt_set_gpio_mode(CHG_DET_EN_PIN, GPIO_MODE_00);
-	mt_set_gpio_dir(CHG_DET_EN_PIN, GPIO_DIR_OUT);
-	
-	mt_set_gpio_dir(CHG_DET_PIN, GPIO_DIR_IN);
-	mt_set_gpio_pull_enable(CHG_DET_PIN, GPIO_PULL_ENABLE);
-	mt_set_gpio_pull_select(CHG_DET_PIN, GPIO_PULL_UP);	
+  }
   
-	if(KERNEL_POWER_OFF_CHARGING_BOOT == bootmode || LOW_POWER_OFF_CHARGING_BOOT == bootmode)
-	{
-		mt_set_gpio_out(CHG_DET_EN_PIN, 0);
-		MISC_LOG("CHG_DET_EN_PIN, 0\n");
-	}
-	else
-	{
-		mt_set_gpio_out(CHG_DET_EN_PIN, 1);
-		MISC_LOG("CHG_DET_EN_PIN,1\n");
-	}
+  static void m_resume( struct early_suspend *h )
+  {
+ 	
+	//----------lifei--------------
+		mt_set_gpio_out((GPIO68|0x80000000),1);
+		mt_set_gpio_out((GPIO2|0x80000000),1);
+		mt_set_gpio_out((GPIO43|0x80000000),1);
+		mt_set_gpio_out((GPIO121|0x80000000),1);
+	//----------------------------	
 	
-	MISC_LOG("probe	finish--------\n");
+  }
+  
+  static struct early_suspend misc_early_suspend_handler = {
+	  .level = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1,
+	  .suspend = m_suspend,
+	  .resume = m_resume,
+  };
+  
+#endif
+#endif
 
-	return ret;
+ static int misc_release (struct inode *node, struct file *file)
+ {
+	 printk("misc_release !\n");
+	 return 0;
 
-EXIT:		 
-	return -1;
+	
+ }
+ static int misc_open (struct inode *inode, struct file *file)
+ {
+	 return nonseekable_open(inode, file);
 
+ }
 
-}
-
-
-static int misc_remove(struct platform_device *pdev)
+static int misc_write(struct file *pfile, const char __user *buf, size_t len, loff_t * offset)
 {
-	mt_set_gpio_dir(MOTOR_RST_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_RST_PIN, 0);
-	mt_set_gpio_dir(MOTOR_BOOT0_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_BOOT0_PIN, 1);
-	mt_set_gpio_dir(MOTOR_POWEN_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_POWEN_PIN, 0);
+	 char pbuf[50] ,**argv=pbuf;
 	
-	mt_set_gpio_dir(MOTOR_ZNJJPOW_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_ZNJJPOW_PIN, 0);	
+	   if(copy_from_user(pbuf, buf,len))
+	   {
+		   return	 -EFAULT;  
+	   }
+	    printk("111111%c,%d\n",pbuf[0],pbuf[1]);
+	  if(pbuf[0] == 'A')
+	  {
+		if(pbuf[1] == '0'){danceflag=false;aw2013_breath_all(0,0,0);}
+		else if(pbuf[1] == '1'){danceflag=true;aw2013_breath_all(1,1,1);}	
+	  }
+	  else if(pbuf[0] == 'B') 
+	    {
+	          if(pbuf[1] == 'A')
+	          return reset_mic_cx20810();
+	    }
+		else if(pbuf[0] == 'G') 
+	    {
+	        if(pbuf[1] == '0')
+				gsensor_data_switch = KAL_FALSE;
+			else if(pbuf[1] == '1')
+				gsensor_data_switch = KAL_TRUE;
+	    }
 		
-	return 0;
-
+	return len;
 }
-
-static int misc_suspend(struct platform_device *pdev, pm_message_t mesg)
+static int misc_read(struct file *pfile, char __user *to, size_t len, loff_t *offset)
 {
-
-    return 0;
-}
-static int misc_shutdown(struct platform_device *pdev)
-{
+	printk("misc_read !\n");
+	
+	
 	return 0;
 }
 
-static int misc_resume(struct platform_device *pdev)
-{
 
-    return 0;
+static long misc_unlocked_ioctl (struct file *pfile, unsigned int cmd, unsigned long param)
+{
+			
+	 return 0;
 }
 
-
-static struct platform_device misc_device = {
-	.name = "misc",
-	.id = -1
+static struct file_operations misc_fops = {
+	.owner = THIS_MODULE,
+	.open = misc_open,
+	.write = misc_write,
+	.read = misc_read,
+	.release = misc_release,
+	.unlocked_ioctl = misc_unlocked_ioctl,
 };
-
-
-// platform structure
-static struct platform_driver misc_driver = {
-    .probe		= misc_probe,
-    .remove	= misc_remove,
-    .shutdown = misc_shutdown,
-    .suspend	= misc_suspend,
-    .resume	= misc_resume,
-    .driver		= {
-        .name	= "misc",
-        .owner	= THIS_MODULE,
-    }
-};
-/*
 
 static int __init misc_init(void)
 {
 	int ret = 0;
-	BOOTMODE bootmode = NORMAL_BOOT;
-	//mt_set_gpio_pull_enable(LD0_3V3_PIN, GPIO_PULL_ENABLE);	
-	
 	printk("misc setting  init  finish--------\n");
-	//Motor
-	mt_set_gpio_mode(MOTOR_RST_PIN, GPIO_MODE_00);
-	mt_set_gpio_dir(MOTOR_RST_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_RST_PIN, 1);
-	
-	mt_set_gpio_mode(MOTOR_BOOT0_PIN, GPIO_MODE_00);
-	mt_set_gpio_dir(MOTOR_BOOT0_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_BOOT0_PIN, 0);
-	
-	mt_set_gpio_mode(MOTOR_POWEN_PIN, GPIO_MODE_00);
-	mt_set_gpio_dir(MOTOR_POWEN_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_POWEN_PIN, 1);
 
-//	mt_set_gpio_dir(CHG_CTL_PIN, GPIO_DIR_OUT);
-//	mt_set_gpio_out(CHG_CTL_PIN, 0);		
-
-	//Easy home
-	mt_set_gpio_mode(MOTOR_ZNJJPOW_PIN, GPIO_MODE_00);	
-	mt_set_gpio_dir(MOTOR_ZNJJPOW_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_ZNJJPOW_PIN, 1);	
-	
-	//Charger
-	//mt_set_gpio_mode(CHG_EN_PIN, GPIO_MODE_00);
-	//mt_set_gpio_dir(CHG_EN_PIN, GPIO_DIR_OUT);
-	//mt_set_gpio_out(CHG_EN_PIN, 0);	
-	
-	
-	mt_set_gpio_mode(LD0_3V3_PIN, GPIO_MODE_00); 
-	mt_set_gpio_dir(LD0_3V3_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(LD0_3V3_PIN, 1);
-	
-	mt_set_gpio_mode(BLUE_LED_PIN, GPIO_MODE_00); 
-	//mt_set_gpio_pull_enable(LD0_3V3_PIN, GPIO_PULL_ENABLE);	
-	mt_set_gpio_dir(BLUE_LED_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(BLUE_LED_PIN, 1);
-	
-	
-		mt_set_gpio_mode(CHG_DET_EN_PIN, GPIO_MODE_00);
-		mt_set_gpio_dir(CHG_DET_EN_PIN, GPIO_DIR_OUT);
-	
-	mt_set_gpio_dir(CHG_DET_PIN, GPIO_DIR_IN);
-	mt_set_gpio_pull_enable(CHG_DET_PIN, GPIO_PULL_ENABLE);
-  mt_set_gpio_pull_select(CHG_DET_PIN, GPIO_PULL_UP);	
-  
-	if(KERNEL_POWER_OFF_CHARGING_BOOT == bootmode || LOW_POWER_OFF_CHARGING_BOOT == bootmode)
-	{
-		mt_set_gpio_out(CHG_DET_EN_PIN, 0);
-		printk("misc setting  CHG_DET_EN_PIN, 0\n");
-	}
-	else
-	{
-		mt_set_gpio_out(CHG_DET_EN_PIN, 1);
-		printk("misc setting  CHG_DET_EN_PIN,1\n");
-	}
-	
-	printk("init  finish--------\n");
-
-	return ret;
-
-EXIT:		 
-	return -1;
-}
-
-
-
-
-static void __exit misc_exit(void)
-{
-	mt_set_gpio_dir(MOTOR_RST_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_RST_PIN, 0);
-	mt_set_gpio_dir(MOTOR_BOOT0_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_BOOT0_PIN, 1);
-	mt_set_gpio_dir(MOTOR_POWEN_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_POWEN_PIN, 0);
-	
-	mt_set_gpio_dir(MOTOR_ZNJJPOW_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(MOTOR_ZNJJPOW_PIN, 0);	
-}
-*/
-
-static int __init misc_init(void)
-{
-	int ret;
-
-	ret = platform_device_register(&misc_device);
-	if (ret)
-		MISC_ERR("device register : %d\n", ret);
-	
-	ret = platform_driver_register(&misc_driver);
-
-	if (ret) {
-		MISC_ERR("driver register: %d\n", ret);
-		return ret;
-	}
 	#ifdef CONFIG_HAS_EARLYSUSPEND
 	#ifdef CONFIG_EARLYSUSPEND
 	register_early_suspend(&misc_early_suspend_handler);
 	#endif
 	#endif
 	
-	return ret;
+	//Motor
+	mt_set_gpio_mode(MOTOR_RST_PIN,GPIO_MODE_00);
+	mt_set_gpio_dir(MOTOR_RST_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(MOTOR_RST_PIN, 1);
+	
+	mt_set_gpio_mode(MOTOR_BOOT0_PIN,GPIO_MODE_00);
+	mt_set_gpio_dir(MOTOR_BOOT0_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(MOTOR_BOOT0_PIN, 0);
+	
+	mt_set_gpio_mode(MOTOR_POWEN_PIN,GPIO_MODE_00);
+	mt_set_gpio_dir(MOTOR_POWEN_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(MOTOR_POWEN_PIN, 1);
+	//Easy home
+	mt_set_gpio_mode(MOTOR_ZNJJPOW_PIN,GPIO_MODE_00);
+	mt_set_gpio_dir(MOTOR_ZNJJPOW_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(MOTOR_ZNJJPOW_PIN, 1);	
+	//Charger
+	mt_set_gpio_mode(CHG_EN_PIN,GPIO_MODE_00);
+	mt_set_gpio_dir(CHG_EN_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(CHG_EN_PIN, 0);	
+	
+	mt_set_gpio_mode(CHG_CTL_PIN,GPIO_MODE_00);
+	mt_set_gpio_dir(CHG_CTL_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(CHG_CTL_PIN, 0);		
+	
+//	mt_set_gpio_mode(CHG_USB_EN,GPIO_DIR_OUT);
+//	mt_set_gpio_dir(CHG_USB_EN, GPIO_DIR_OUT);
+//	mt_set_gpio_out(CHG_USB_EN, 1);
+
+	wake_lock_init(&m_lock, WAKE_LOCK_SUSPEND, "misc"); //davie: forbid deep sleep for 5mic
+	wake_lock(&m_lock);
+
+	printk("misc setting  init  finish--------\n");
+
+	ret = alloc_chrdev_region(&misc_dev, 0, 1, DEV_NAME);
+			 if (ret< 0) {
+			 printk("misc alloc_chrdev_region failed, %d", ret);
+			return ret;
+		}
+		 misc_cdev= cdev_alloc();
+		 if (misc_cdev == NULL) {
+				 printk("misc cdev_alloc failed");
+				 ret = -ENOMEM;
+				 goto EXIT;
+			 }
+		cdev_init(misc_cdev, &misc_fops);
+		 misc_cdev->owner = THIS_MODULE;
+		 ret = cdev_add(misc_cdev, misc_dev, 1);
+		 if (ret < 0) {
+			  printk("Attatch file misc operation failed, %d", ret);
+			 goto EXIT;
+		 }
+				 
+		 misc_class = class_create(THIS_MODULE, DEV_NAME);
+				 if (IS_ERR(misc_class)) {
+					 printk("Failed to create class(misc)!\n");
+					 return PTR_ERR(misc_class);
+				 }
+				 
+		 misc_device = device_create(misc_class, NULL, misc_dev, NULL,DEV_NAME);
+		 if (IS_ERR(misc_device))
+			 printk("Failed to create misc_dev device\n");
+		 
+		printk("daviekuo misc	init  finish--------\n");
+	
+		return 0;
+		
+	EXIT:
+		if(misc_cdev != NULL)
+		{
+			cdev_del(misc_cdev);
+			misc_cdev = NULL;
+		}
+		unregister_chrdev_region(misc_dev, 1);
+	
+		printk("misc device  init  failed--------\n");			 
+	
+		return ret;
 }
+/*----------------------------------------------------------------------------*/
 
 static void __exit misc_exit(void)
 {
-	platform_driver_unregister(&misc_driver);
+	mt_set_gpio_mode(MOTOR_RST_PIN,GPIO_DIR_OUT);
+	mt_set_gpio_dir(MOTOR_RST_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(MOTOR_RST_PIN, 0);
+	
+	mt_set_gpio_mode(MOTOR_BOOT0_PIN,GPIO_DIR_OUT);
+	mt_set_gpio_dir(MOTOR_BOOT0_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(MOTOR_BOOT0_PIN, 1);
+	
+	mt_set_gpio_mode(MOTOR_POWEN_PIN,GPIO_DIR_OUT);
+	mt_set_gpio_dir(MOTOR_POWEN_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(MOTOR_POWEN_PIN, 0);
+	
+	mt_set_gpio_mode(MOTOR_ZNJJPOW_PIN,GPIO_DIR_OUT);
+	mt_set_gpio_dir(MOTOR_ZNJJPOW_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(MOTOR_ZNJJPOW_PIN, 0);	
+	
 	wake_lock_destroy(&m_lock);
+//	mt_set_gpio_mode(CHG_USB_EN,GPIO_DIR_OUT);
+//	mt_set_gpio_dir(CHG_USB_EN, GPIO_DIR_OUT);
+//	mt_set_gpio_out(CHG_USB_EN, 0);
+	
 }
 
 module_init(misc_init);

@@ -36,6 +36,7 @@
 #ifndef TOUCHPANEL_H__
 #define TOUCHPANEL_H__
 
+#define TPD_CLOSE_POWER_IN_SLEEP
 /* Pre-defined definition */
 #define TPD_TYPE_CAPACITIVE
 #define TPD_TYPE_RESISTIVE

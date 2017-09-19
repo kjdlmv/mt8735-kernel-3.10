@@ -18,7 +18,7 @@ obj-y   += watchpoint/
 obj-y	+= mach/
 obj-y	+= kernel/
 obj-y	+= aee/
-#obj-y	+= ir_etk/
+obj-y	+= ir_etk/
 obj-y	+= mic5/
 
 obj-$(CONFIG_MTK_FMRADIO)	+= fmradio/
@@ -27,11 +27,8 @@ obj-$(CONFIG_MTK_GPS)	    += gps/
 obj-y	+= m4u/
 #obj-y	+= mhl/
 #obj-y	+= motor/
-obj-y	+= y128motor/
 obj-y	+= misc/
 obj-y	+= touchsensor/
-obj-y	+= pir_sensor/
-obj-y	+= wrapper/
 obj-y	+= mtprof/
 obj-y	+= sched/
 obj-$(CONFIG_MTK_CMDQ) += cmdq/
@@ -157,7 +154,7 @@ obj-y	+= jpeg/
 endif
 
 obj-$(CONFIG_MTK_LEDS)	+= leds/
-obj-y	+= breathled/
+#obj-y	+= breathled/
 #obj-y	+= ircam/
 obj-y	+= masp/
 obj-$(CONFIG_MTK_MMC)	+= mmc-host/
