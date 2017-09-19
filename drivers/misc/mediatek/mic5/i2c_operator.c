@@ -159,15 +159,12 @@ static int gp_i2c_read_dispatch(int len)
 	return -1;
 }
 // end==========
-extern void i2c_io_init(void);
 
 static int gp_open(struct inode * pnode, struct file * pfile)
 {
 	printk("Timothy:i2c_operator.c->gp_open()\n");
 	int major = MAJOR(pnode->i_rdev);
 	int minor = MINOR(pnode->i_rdev);
-
-	i2c_io_init();
 
 	if(minor == 0)
 	{
