@@ -35,6 +35,7 @@ ccflags-y += -I$(MTK_PLATFORM_PATH_ROOT)/include \
              -I$(MTK_PROJECT_PATH_ROOT)/leds/mt65xx \
              -I$(MTK_PROJECT_PATH_ROOT)/power \
              -I$(MTK_PROJECT_PATH_ROOT)/rtc \
+              -I$(MTK_PROJECT_PATH_ROOT)/mic5 \
              -I$(MTK_PROJECT_PATH_ROOT)/sound/inc \
              -I$(MTK_PROJECT_PATH_ROOT)/misc \
              -I$(MTK_PROJECT_PATH_ROOT)/vibrator \
