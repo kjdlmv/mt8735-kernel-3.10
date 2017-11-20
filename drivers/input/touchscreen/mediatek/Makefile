@@ -11,7 +11,7 @@ obj-y   +=  tpd_init.o
 obj-y   +=  tpd_misc.o
 obj-y   +=  tpd_setting.o
 
-
+obj-y	+=  GT911/
 
 ifeq ($(CONFIG_TOUCHSCREEN_MTK_MAX1187X),y)
 obj-y	+=  max1187x/
